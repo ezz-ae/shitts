@@ -1,7 +1,6 @@
 "use client";
 
 import Image from 'next/image';
-import { X, Plus, Minus } from 'lucide-react';
 import type { CartItem } from '@/types';
 import { useApp } from '@/hooks/useApp';
 import { Button } from '@/components/ui/button';
@@ -35,7 +34,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item }) => {
             className="h-8 w-8"
             onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
           >
-            <Minus className="h-4 w-4" />
+            -
           </Button>
           <Input
             type="number"
@@ -49,12 +48,12 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item }) => {
             className="h-8 w-8"
             onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
           >
-            <Plus className="h-4 w-4" />
+            +
           </Button>
         </div>
       </div>
-      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => removeFromCart(item.product.id)}>
-        <X className="h-4 w-4" />
+      <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => removeFromCart(item.product.id)}>
+        Remove
       </Button>
     </div>
   );

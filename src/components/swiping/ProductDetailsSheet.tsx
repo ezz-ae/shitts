@@ -5,7 +5,6 @@ import { useApp } from '@/hooks/useApp';
 import type { Product } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
-import { Heart } from 'lucide-react';
 
 interface ProductDetailsSheetProps {
   product: Product;
@@ -39,8 +38,8 @@ export function ProductDetailsSheet({ product }: ProductDetailsSheetProps) {
           {product.description}
         </SheetDescription>
         <SheetFooter>
-          <Button onClick={addToCartAndClose} size="lg" className="w-full">
-            <Heart className="mr-2 h-5 w-5 fill-white" /> Add to Cart
+          <Button onClick={addToCartAndClose} size="lg" className="w-full text-lg font-semibold">
+            Add to Cart
           </Button>
         </SheetFooter>
       </SheetContent>

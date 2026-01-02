@@ -5,7 +5,7 @@ import { useApp } from '@/hooks/useApp';
 import { ProductCard } from './ProductCard';
 import { SwipeButtons } from './SwipeButtons';
 import { Button } from '@/components/ui/button';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 export function SwipeArea() {
   const { deck, currentIndex, handleSwipe, isLoading, getNewRecommendations, resetDeck } = useApp();
@@ -54,7 +54,7 @@ export function SwipeArea() {
             <p className="text-muted-foreground mt-2 mb-6">Want to see more? Get personalized recommendations from our AI stylist.</p>
             <div className="flex flex-col gap-4">
               <Button onClick={getNewRecommendations} className="bg-accent hover:bg-accent/90" size="lg">
-                <RefreshCw className="mr-2 h-4 w-4"/> Get AI Recommendations
+                Get AI Recommendations
               </Button>
               <Button onClick={resetDeck} variant="outline" size="lg">
                 Start Over

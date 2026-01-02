@@ -1,7 +1,6 @@
 "use client";
 
 import React from 'react';
-import { X, ArrowUp, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useApp } from '@/hooks/useApp';
 
@@ -12,34 +11,33 @@ interface SwipeButtonsProps {
 export function SwipeButtons({ onSwipe }: SwipeButtonsProps) {
   const { openDetails } = useApp();
 
-  const buttonClass = "w-20 h-20 rounded-full shadow-2xl transform hover:scale-110 transition-transform";
-  const iconSize = 36;
+  const buttonClass = "h-14 rounded-full shadow-lg transform hover:scale-105 transition-transform text-lg font-bold w-28";
 
   return (
     <div className="flex items-center justify-evenly w-full max-w-sm pb-8 z-10">
       <Button
         onClick={() => onSwipe('left')}
-        variant="destructive"
-        className={`${buttonClass} bg-white text-destructive border-2 border-destructive hover:bg-destructive/10`}
+        variant="outline"
+        className={`${buttonClass} border-destructive text-destructive hover:bg-destructive hover:text-white`}
         aria-label="Dislike"
       >
-        <X size={iconSize} />
+        Nope
       </Button>
       <Button
         onClick={openDetails}
-        variant="secondary"
-        className={`${buttonClass} w-16 h-16 bg-white text-accent border-2 border-accent hover:bg-accent/10`}
+        variant="outline"
+        className="h-12 w-24 rounded-full shadow-md text-base font-semibold border-accent text-accent hover:bg-accent hover:text-white"
         aria-label="More Info"
       >
-        <ArrowUp size={30} />
+        Info
       </Button>
       <Button
         onClick={() => onSwipe('right')}
-        variant="default"
-        className={`${buttonClass} bg-white text-primary border-2 border-primary hover:bg-primary/10`}
+        variant="outline"
+        className={`${buttonClass} border-primary text-primary hover:bg-primary hover:text-white`}
         aria-label="Like"
       >
-        <Heart size={iconSize} className="fill-primary" />
+        Like
       </Button>
     </div>
   );
