@@ -1,3 +1,64 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "prod1",
+      "description": "Stylish floral maxi dress",
+      "imageUrl": "https://images.unsplash.com/photo-1762154057377-cc9d3dd6900c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxkcmVzcyUyMGZhc2hpb258ZW58MHx8fHwxNzY3MzU3NjE2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "dress fashion"
+    },
+    {
+      "id": "prod2",
+      "description": "Classic vintage denim jacket",
+      "imageUrl": "https://images.unsplash.com/photo-1628719278616-7275ad48f9a3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxqYWNrZXQlMjBkZW5pbXxlbnwwfHx8fDE3NjczNTc2MTZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "jacket denim"
+    },
+    {
+      "id": "prod3",
+      "description": "Comfortable graphic t-shirt",
+      "imageUrl": "https://images.unsplash.com/photo-1767122627896-effda76f4942?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHx0LXNoaXJ0JTIwZ3JhcGhpY3xlbnwwfHx8fDE3NjczMTg1OTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "t-shirt graphic"
+    },
+    {
+      "id": "prod4",
+      "description": "Elegant high-waisted trousers",
+      "imageUrl": "https://images.unsplash.com/photo-1721917113650-4dd5ffbc7dc2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8dHJvdXNlcnMlMjBmYXNoaW9ufGVufDB8fHx8MTc2NzM1NzYxNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "trousers fashion"
+    },
+    {
+      "id": "prod5",
+      "description": "Cozy knit sweater",
+      "imageUrl": "https://images.unsplash.com/photo-1646270968802-6bad28659329?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxzd2VhdGVyJTIwa25pdHxlbnwwfHx8fDE3NjczNTc2MTZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "sweater knit"
+    },
+    {
+      "id": "prod6",
+      "description": "Leather crossbody bag",
+      "imageUrl": "https://images.unsplash.com/photo-1650542218150-5e59a58d4312?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxiYWclMjBsZWF0aGVyfGVufDB8fHx8MTc2NzM1NzYxNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "bag leather"
+    },
+    {
+      "id": "prod7",
+      "description": "Minimalist white sneakers",
+      "imageUrl": "https://images.unsplash.com/photo-1722489291789-394a53ad954d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxzbmVha2VycyUyMHdoaXRlfGVufDB8fHx8MTc2NzI4MjAxOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "sneakers white"
+    },
+    {
+      "id": "prod8",
+      "description": "Flowy A-line skirt",
+      "imageUrl": "https://images.unsplash.com/photo-1574413230698-f80892c96e13?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxza2lydCUyMGZhc2hpb258ZW58MHx8fHwxNzY3MzU3NjE3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "skirt fashion"
+    },
+    {
+      "id": "prod9",
+      "description": "Tailored linen blazer",
+      "imageUrl": "https://images.unsplash.com/photo-1611331827787-109e62126722?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxibGF6ZXIlMjBmYXNoaW9ufGVufDB8fHx8MTc2NzM1NzYxNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "blazer fashion"
+    },
+    {
+      "id": "prod10",
+      "description": "Chunky gold hoop earrings",
+      "imageUrl": "https://images.unsplash.com/photo-1633555232578-d3ca7ec52711?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxlYXJyaW5ncyUyMGpld2Vscnl8ZW58MHx8fHwxNzY3MzU3NjE2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "earrings jewelry"
+    }
+  ]
 }
