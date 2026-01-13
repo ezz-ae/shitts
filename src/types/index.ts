@@ -1,13 +1,9 @@
 export interface Product {
   id: string;
   name: string;
-  price: number;
-  description: string;
   imageUrl: string;
-  imageHint: string;
-}
-
-export interface CartItem {
-  product: Product;
-  quantity: number;
+  price: number;
+  description?: string; // Added for admin panel
+  category?: string;    // Added for admin panel
+  imageHint?: string;
 }

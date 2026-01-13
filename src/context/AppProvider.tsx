@@ -35,7 +35,7 @@ const shuffleArray = (array: any[]) => {
 }
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [deck, setDeck] = useState<Product[]>(() => shuffleArray(allProducts));
+  const [deck, setDeck] = useState<Product[]>(() => shuffleArray(allProducts.getAllProducts()));
   const [currentIndex, setCurrentIndex] = useState(0);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [swipeHistory, setSwipeHistory] = useState<SwipeHistory>([]);
@@ -49,7 +49,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSwipeHistory(prev => [...prev, { productId, action }]);
 
     if (action === 'swipeRight') {
-      const product = allProducts.find(p => p.id === productId);
+      const product = allProducts.getProductById(productId);
       if (product) {
         setCart(prevCart => {
           const existingItem = prevCart.find(item => item.product.id === productId);
@@ -92,8 +92,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const recommendedIds = await fetchRecommendations({ 
         swipingHistory: swipeHistory.map(h => ({...h, action: h.action === 'swipeRight' ? 'swipeRight' : 'swipeLeft'} as any)), // Ensure enum values
       });
-      const recommendedProducts = allProducts.filter(p => recommendedIds.includes(p.id));
-      const otherProducts = allProducts.filter(p => !recommendedIds.includes(p.id));
+      const allProds = allProducts.getAllProducts();
+      const recommendedProducts = allProds.filter(p => recommendedIds.includes(p.id));
+      const otherProducts = allProds.filter(p => !recommendedIds.includes(p.id));
       
       const newDeck = [...shuffleArray(recommendedProducts), ...shuffleArray(otherProducts)];
       setDeck(newDeck);
@@ -115,7 +116,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const resetDeck = () => {
-    setDeck(shuffleArray(allProducts));
+    setDeck(shuffleArray(allProducts.getAllProducts()));
     setCurrentIndex(0);
     setSwipeHistory([]);
     toast({

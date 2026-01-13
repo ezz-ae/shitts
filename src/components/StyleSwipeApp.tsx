@@ -1,7 +1,7 @@
 "use client";
 
 import { useApp } from '@/hooks/useApp';
-import Header from '@/components/layout/Header';
+// Removed Header import as it's now in layout.tsx
 import { SwipeArea } from '@/components/swiping/SwipeArea';
 import { ProductDetailsSheet } from '@/components/swiping/ProductDetailsSheet';
 import { ShoppingCart } from '@/components/cart/ShoppingCart';
@@ -12,7 +12,7 @@ export function StyleSwipeApp() {
 
   return (
     <div className="relative flex flex-col h-svh w-full overflow-hidden bg-background font-body">
-      <Header />
+      {/* Header removed from here to avoid duplication */}
       <main className="flex-1 flex flex-col items-center justify-center relative isolate">
         <SwipeArea />
       </main>

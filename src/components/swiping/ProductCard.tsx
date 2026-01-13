@@ -97,14 +97,16 @@ export function ProductCard({ product, isTop, onSwipe, swipeTrigger }: ProductCa
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
       className={cn(
-        "absolute w-full h-full rounded-2xl overflow-hidden bg-card shadow-2xl transition-transform duration-300 ease-in-out",
+        "absolute w-full h-full rounded-lg overflow-hidden bg-card shadow-lg transition-transform duration-300 ease-in-out",
         isTop ? "cursor-grab active:cursor-grabbing" : "touch-none"
       )}
-      style={{
-        ...style,
-        transformOrigin: 'center',
-        willChange: 'transform, opacity',
-      }}
+      style={
+        {
+          ...style,
+          transformOrigin: 'center',
+          willChange: 'transform, opacity',
+        }
+      }
     >
       <Image
         src={product.imageUrl}
@@ -115,7 +117,7 @@ export function ProductCard({ product, isTop, onSwipe, swipeTrigger }: ProductCa
         className="object-cover pointer-events-none"
         data-ai-hint={product.imageHint}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
       <div className="absolute bottom-0 left-0 right-0 p-6 text-white pointer-events-none">
         <h2 className="text-3xl font-bold">{product.name}</h2>
         <p className="text-xl font-medium">${product.price.toFixed(2)}</p>
@@ -126,8 +128,8 @@ export function ProductCard({ product, isTop, onSwipe, swipeTrigger }: ProductCa
         className="absolute inset-0 flex items-center justify-center transition-opacity pointer-events-none"
         style={{ ...overlayStyle }}
       >
-        <p className="text-5xl font-extrabold text-white tracking-widest border-4 border-white px-4 py-2 rounded-xl"
-           style={{ transform: overlayText === 'NOPE' ? 'rotate(-15deg)' : 'rotate(15deg)' }}>
+        <p className="text-6xl font-extrabold text-white tracking-widest px-6 py-3 rounded-2xl"
+           style={{ transform: overlayText === 'NOPE' ? 'rotate(-15deg)' : 'rotate(15deg)', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>
           {overlayText}
         </p>
       </div>

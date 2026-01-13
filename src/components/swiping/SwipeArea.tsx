@@ -24,10 +24,10 @@ export function SwipeArea() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center text-center gap-4">
+      <div className="flex flex-col items-center justify-center text-center gap-4 p-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <h2 className="text-2xl font-bold tracking-tight">Curating your style...</h2>
-        <p className="text-muted-foreground">Our AI is picking out fresh looks just for you!</p>
+        <h2 className="text-2xl font-headline font-bold tracking-tight">Curating your style...</h2>
+        <p className="text-muted-foreground font-body">Our AI is picking out fresh looks just for you!</p>
       </div>
     );
   }
@@ -49,9 +49,9 @@ export function SwipeArea() {
             );
           })
         ) : (
-          <div className="text-center p-8 bg-card rounded-2xl shadow-xl">
-            <h2 className="text-2xl font-bold tracking-tight">That's all for now!</h2>
-            <p className="text-muted-foreground mt-2 mb-6">Want to see more? Get personalized recommendations from our AI stylist.</p>
+          <div className="text-center p-8 bg-card rounded-lg shadow-md">
+            <h2 className="text-2xl font-headline font-bold tracking-tight">That's all for now!</h2>
+            <p className="text-muted-foreground font-body mt-2 mb-6">Want to see more? Get personalized recommendations from our AI stylist.</p>
             <div className="flex flex-col gap-4">
               <Button onClick={getNewRecommendations} className="bg-accent hover:bg-accent/90" size="lg">
                 Get AI Recommendations

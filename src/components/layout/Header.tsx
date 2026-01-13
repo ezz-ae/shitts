@@ -1,28 +1,27 @@
-"use client";
-
+import React from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { useApp } from '@/hooks/useApp';
 
-const Header = () => {
-  const { openCart, cart } = useApp();
-  const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-
+export const Header = () => {
   return (
-    <header className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-transparent">
-      <h1 className="text-2xl font-extrabold text-primary tracking-tighter">
+    <header className="bg-card border-b border-border py-4 px-6 flex items-center justify-between shadow-sm">
+      <Link href="/" className="text-2xl font-headline font-bold text-foreground">
         StyleSwipe
-      </h1>
-      <Button onClick={openCart} variant="ghost" className="relative text-foreground/80 hover:text-primary hover:bg-transparent font-semibold">
-        Cart
-        {cartItemCount > 0 && (
-          <span className="absolute -top-2 -right-3 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">
-            {cartItemCount}
-          </span>
-        )}
-        <span className="sr-only">Open shopping cart</span>
-      </Button>
+      </Link>
+      <nav className="flex items-center space-x-4">
+        <Button variant="ghost" asChild>
+          <Link href="/">Home</Link>
+        </Button>
+        <Button variant="ghost" asChild>
+          <Link href="/left">Left</Link>
+        </Button>
+        <Button variant="ghost" asChild>
+          <Link href="/right">Right</Link>
+        </Button>
+        <Button variant="ghost" asChild>
+          <Link href="/admin">Admin</Link>
+        </Button>
+      </nav>
     </header>
   );
 };
-
-export default Header;
