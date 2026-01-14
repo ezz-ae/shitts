@@ -3,11 +3,28 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useApp } from '@/hooks/useApp';
-import { X, Circle, ChevronUp } from 'lucide-react';
+import { X, Circle } from 'lucide-react';
 
 interface SwipeButtonsProps {
   onSwipe: (direction: 'left' | 'right') => void;
 }
+
+const UpTriangle = () => (
+  <svg
+    width="48"
+    height="48"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    stroke="white"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M12 5l-7 14h14z" />
+  </svg>
+);
+
 
 export function SwipeButtons({ onSwipe }: SwipeButtonsProps) {
   const { openDetails, openCart, undoLastSwipe } = useApp();
@@ -38,7 +55,7 @@ export function SwipeButtons({ onSwipe }: SwipeButtonsProps) {
         className={buttonClass}
         aria-label="Open Cart"
       >
-        <ChevronUp size={48} strokeWidth={2.5} className="text-white" />
+        <UpTriangle />
       </Button>
     </div>
   );
