@@ -5,7 +5,7 @@ import { useApp } from '@/hooks/useApp';
 import { ProductCard } from './ProductCard';
 import { SwipeButtons } from './SwipeButtons';
 import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles, User } from 'lucide-react';
+import { Loader2, User, RefreshCw } from 'lucide-react';
 
 export function SwipeArea() {
   const { deck, currentIndex, handleSwipe, isLoading, resetDeck, openProfile } = useApp();
@@ -52,13 +52,18 @@ export function SwipeArea() {
             );
           })
         ) : (
-          <div className="flex h-full flex-col items-center justify-center text-center p-12 bg-white space-y-8">
-            <Sparkles className="w-12 h-12 text-pink-200" />
-            <div className="space-y-3">
-              <h2 className="text-3xl font-black tracking-tighter text-black uppercase">Your Daily Edit is Complete</h2>
-              <p className="text-gray-400 font-medium">See you tomorrow with a new selection.</p>
-            </div>
-            <Button onClick={resetDeck} variant="outline" className="w-full h-14 border-pink-200 text-pink-500 rounded-2xl font-bold text-lg">Restart Today's Session</Button>
+          <div className="flex h-full flex-col items-center justify-center text-center p-12 bg-black space-y-6">
+            <h2 className="text-xl font-black tracking-[0.5em] text-white/20 uppercase">End of feed</h2>
+            <Button 
+                onClick={resetDeck} 
+                variant="ghost" 
+                className="group flex flex-col items-center gap-4 hover:bg-transparent"
+            >
+                <div className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center group-active:scale-90 transition-all">
+                    <RefreshCw className="w-6 h-6 text-white opacity-40 group-hover:opacity-100 group-hover:rotate-180 transition-all duration-700" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Discover More</span>
+            </Button>
           </div>
         )}
       </div>
