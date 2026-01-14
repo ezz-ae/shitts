@@ -28,6 +28,7 @@ interface AppContextType {
   getNewRecommendations: () => Promise<void>;
   resetDeck: () => void;
   checkout: () => void;
+  undoLastSwipe: () => void;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -96,6 +97,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
     }
   };
+  
+  const undoLastSwipe = useCallback(() => {
+    if (currentIndex > 0) {
+      const lastAction = swipeHistory[swipeHistory.length - 1];
+      if (lastAction && lastAction.action === 'swipeLeft') {
+          setCurrentIndex(prev => prev - 1);
+          setSwipeHistory(prev => prev.slice(0, -1));
+          toast({
+            title: "Reconsidering?",
+            description: "Here's the last item you swiped left on.",
+          });
+      } else {
+         toast({
+          variant: "destructive",
+          title: "Undo not available",
+          description: "Can only undo a 'dislike' swipe.",
+        });
+      }
+    }
+  }, [currentIndex, swipeHistory, toast]);
 
   const getNewRecommendations = async () => {
     setIsLoading(true);
@@ -166,8 +187,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateQuantity,
     getNewRecommendations,
     resetDeck,
-    checkout
-  }), [deck, cart, swipeHistory, currentIndex, isDetailsOpen, isCartOpen, isLoading, handleSwipe, openCart, closeCart]);
+    checkout,
+    undoLastSwipe
+  }), [deck, cart, swipeHistory, currentIndex, isDetailsOpen, isCartOpen, isLoading, handleSwipe, openCart, closeCart, undoLastSwipe]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
