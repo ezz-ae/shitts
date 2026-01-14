@@ -3,10 +3,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Block all direct client-side writes to sensitive collections
-    match /orders/{orderId} {
+    // LOGISTICS & FINANCE: Absolute lockdown. No client-side writing ever.
+    match /ledger/{entryId} {
       allow write: if false;
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow read: if false; 
     }
     
     match /invoices/{invoiceId} {
@@ -14,31 +14,42 @@ service cloud.firestore {
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
     }
     
-    match /ledger/{entryId} {
+    match /webhook_events/{eventId} {
       allow write: if false;
-      allow read: if false; // Only accessible via Admin SDK
+      allow read: if false;
+    }
+
+    match /orders/{orderId} {
+      allow write: if false;
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
     }
     
-    // Public product reading, but no writing
+    // INVENTORY: Public read, no write.
     match /products/{productId} {
       allow write: if false;
       allow read: if true;
     }
     
-    // User profile: only the owner can read/update (no direct creation)
+    // USER UX: Only owner can read/update limited fields.
     match /users/{userId} {
       allow create: if false;
       allow read: if request.auth != null && request.auth.uid == userId;
-      allow update: if request.auth != null && request.auth.uid == userId;
+      // Users can update their own profile (e.g. locations), but NOT credit balance.
+      allow update: if request.auth != null && request.auth.uid == userId 
+                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['credit', 'role']);
       
-      // Sub-collections (intents, orders)
-      match /{allSubcollections=**} {
+      match /orders/{orderId} {
         allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
+
+      match /intents/{intentId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        // Intents are write-once by server only
         allow write: if false;
       }
     }
     
-    // Default: block everything else
     match /{document=**} {
       allow read, write: if false;
     }
