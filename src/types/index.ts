@@ -3,7 +3,12 @@ export interface Product {
   name: string;
   imageUrl: string;
   price: number;
-  description?: string; // Added for admin panel
-  category?: string;    // Added for admin panel
+  description?: string;
+  category?: string;
   imageHint?: string;
+}
+
+export interface CartItem {
+    product: Product;
+    quantity: number;
 }

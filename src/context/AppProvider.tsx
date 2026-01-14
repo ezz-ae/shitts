@@ -1,13 +1,14 @@
 "use client";
 
-import React, { createContext, useState, useMemo, useCallback } from 'react';
+import React, { createContext, useState, useMemo, useCallback, useEffect } from 'react';
 import type { Product, CartItem } from '@/types';
-import { products as allProducts } from '@/lib/products';
+import { products as productManager } from '@/lib/products';
 import { fetchRecommendations } from '@/actions/getRecommendations';
 import { useToast } from "@/hooks/use-toast";
 
-type SwipeAction = 'swipeLeft' | 'swipeRight';
-type SwipeHistory = { productId: string; action: SwipeAction; }[];
+type SwipeAction = 'swipeLeft' | 'swipeRight' | 'swipeUp';
+type SwipeHistoryItem = { productId: string; action: SwipeAction; };
+type SwipeHistory = SwipeHistoryItem[];
 
 interface AppContextType {
   deck: Product[];
@@ -17,7 +18,7 @@ interface AppContextType {
   isDetailsOpen: boolean;
   isCartOpen: boolean;
   isLoading: boolean;
-  handleSwipe: (productId: string, action: SwipeAction) => void;
+  handleSwipe: (productId: string, action: 'swipeLeft' | 'swipeRight') => void;
   openDetails: () => void;
   closeDetails: () => void;
   openCart: () => void;
@@ -26,30 +27,37 @@ interface AppContextType {
   updateQuantity: (productId: string, quantity: number) => void;
   getNewRecommendations: () => Promise<void>;
   resetDeck: () => void;
+  checkout: () => void;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const shuffleArray = (array: any[]) => {
+  if (!Array.isArray(array)) return [];
   return [...array].sort(() => Math.random() - 0.5);
 }
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [deck, setDeck] = useState<Product[]>(() => shuffleArray(allProducts.getAllProducts()));
+  const [deck, setDeck] = useState<Product[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [swipeHistory, setSwipeHistory] = useState<SwipeHistory>([]);
   const [isDetailsOpen, setDetailsOpen] = useState(false);
   const [isCartOpen, setCartOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const handleSwipe = useCallback((productId: string, action: SwipeAction) => {
+  useEffect(() => {
+    setDeck(shuffleArray(productManager.getAllProducts()));
+    setIsLoading(false);
+  }, []);
+
+  const handleSwipe = useCallback((productId: string, action: 'swipeLeft' | 'swipeRight') => {
     setCurrentIndex(prev => prev + 1);
-    setSwipeHistory(prev => [...prev, { productId, action }]);
+    setSwipeHistory(prev => [...prev, { productId, action: action as SwipeAction }]);
 
     if (action === 'swipeRight') {
-      const product = allProducts.getProductById(productId);
+      const product = productManager.getProductById(productId);
       if (product) {
         setCart(prevCart => {
           const existingItem = prevCart.find(item => item.product.id === productId);
@@ -69,6 +77,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
   }, [toast]);
+  
+  const openCart = () => setCartOpen(true);
+  const closeCart = () => setCartOpen(false);
 
   const removeFromCart = (productId: string) => {
     setCart(prev => prev.filter(item => item.product.id !== productId));
@@ -90,11 +101,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsLoading(true);
     try {
       const recommendedIds = await fetchRecommendations({ 
-        swipingHistory: swipeHistory.map(h => ({...h, action: h.action === 'swipeRight' ? 'swipeRight' : 'swipeLeft'} as any)), // Ensure enum values
+        swipingHistory: swipeHistory.map(h => ({...h, action: h.action as any })), // Ensure enum values
+        purchaseHistory: cart.map(c => c.product.id),
       });
-      const allProds = allProducts.getAllProducts();
+      const allProds = productManager.getAllProducts();
       const recommendedProducts = allProds.filter(p => recommendedIds.includes(p.id));
-      const otherProducts = allProds.filter(p => !recommendedIds.includes(p.id));
+      const otherProducts = allProds.filter(p => !recommendedIds.includes(p.id) && !deck.slice(0, currentIndex).find(dp => dp.id === p.id));
       
       const newDeck = [...shuffleArray(recommendedProducts), ...shuffleArray(otherProducts)];
       setDeck(newDeck);
@@ -105,6 +117,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         description: "We've curated a new stack for you based on your preferences.",
       });
     } catch (error) {
+      console.error(error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -116,13 +129,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const resetDeck = () => {
-    setDeck(shuffleArray(allProducts.getAllProducts()));
+    setIsLoading(true);
+    setDeck(shuffleArray(productManager.getAllProducts()));
     setCurrentIndex(0);
     setSwipeHistory([]);
+    setIsLoading(false);
     toast({
       title: "Deck Reset",
       description: "Enjoy a fresh stack of styles!",
     });
+  }
+
+  const checkout = () => {
+    setCart([]);
+    setCartOpen(false);
+    toast({
+      title: "Thank You!",
+      description: "Your order has been placed.",
+    })
   }
 
   const value = useMemo(() => ({
@@ -136,13 +160,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     handleSwipe,
     openDetails: () => setDetailsOpen(true),
     closeDetails: () => setDetailsOpen(false),
-    openCart: () => setCartOpen(true),
-    closeCart: () => setCartOpen(false),
+    openCart,
+    closeCart,
     removeFromCart,
     updateQuantity,
     getNewRecommendations,
     resetDeck,
-  }), [deck, cart, swipeHistory, currentIndex, isDetailsOpen, isCartOpen, isLoading, handleSwipe]);
+    checkout
+  }), [deck, cart, swipeHistory, currentIndex, isDetailsOpen, isCartOpen, isLoading, handleSwipe, openCart, closeCart]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

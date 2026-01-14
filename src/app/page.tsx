@@ -3,12 +3,12 @@ import { StyleSwipeApp } from '@/components/StyleSwipeApp';
 
 export default function Home() {
   return (
-    <div className="flex justify-center">
-      <div className="w-full max-w-md">
+    <main className="flex justify-center items-center h-full">
+      <div className="w-full h-full max-w-md mx-auto">
         <AppProvider>
           <StyleSwipeApp />
         </AppProvider>
       </div>
-    </div>
+    </main>
   );
 }
