@@ -1,5 +1,5 @@
 import { adminDb } from './firebase-admin';
-import type { Product, Order, UserProfileData, UserIntent, Invoice, LedgerEntry } from '@/types';
+import type { Product, Order, UserProfileData, UserIntent, Invoice, LedgerEntry, WebhookEvent } from '@/types';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export const db = {
@@ -67,19 +67,64 @@ export const db = {
   invoices: {
     async create(invoice: Invoice) {
       await adminDb.collection('invoices').doc(invoice.id).set(invoice);
+    },
+    async getById(id: string): Promise<Invoice | undefined> {
+      const doc = await adminDb.collection('invoices').doc(id).get();
+      return doc.exists ? doc.data() as Invoice : undefined;
+    },
+    async getByProviderRef(provider: string, providerRef: string): Promise<Invoice | undefined> {
+      const snapshot = await adminDb.collection('invoices')
+        .where('provider', '==', provider)
+        .where('providerRef', '==', providerRef)
+        .limit(1)
+        .get();
+      if (snapshot.empty) return undefined;
+      return snapshot.docs[0].data() as Invoice;
+    },
+    async updateStatus(invoiceId: string, status: Invoice['status'], patch: Partial<Invoice> = {}) {
+      await adminDb.collection('invoices').doc(invoiceId).update({ status, ...patch });
+    },
+    async attachLedgerEntry(invoiceId: string, ledgerEntryId: string) {
+      await adminDb.collection('invoices').doc(invoiceId).update({
+        ledgerEntries: FieldValue.arrayUnion(ledgerEntryId)
+      });
     }
   },
   ledger: {
-    async addEntry(entry: Omit<LedgerEntry, 'id'>) {
-      const entryRef = adminDb.collection('ledger').doc();
-      const newEntry = { ...entry, id: entryRef.id };
-      await entryRef.set(newEntry);
-      if (entry.userId && entry.userId !== 'system') {
-        const userRef = adminDb.collection('users').doc(entry.userId);
-        const increment = entry.type === 'CREDIT' ? entry.amount : -entry.amount;
-        await userRef.update({ credit: FieldValue.increment(increment) });
-      }
-      return newEntry;
+    async existsByProviderEvent(provider: string, eventId: string): Promise<boolean> {
+      const docId = `${provider}_${eventId}`;
+      const doc = await adminDb.collection('webhook_events').doc(docId).get();
+      return doc.exists;
+    },
+    async addEntryIdempotent(entry: Omit<LedgerEntry, 'id'>, provider: string, eventId: string) {
+      const eventDocId = `${provider}_${eventId}`;
+      
+      return await adminDb.runTransaction(async (transaction) => {
+        const eventRef = adminDb.collection('webhook_events').doc(eventDocId);
+        const eventDoc = await transaction.get(eventRef);
+        
+        if (eventDoc.exists) {
+          return null; // Already processed
+        }
+
+        const entryRef = adminDb.collection('ledger').doc();
+        const newEntry = { ...entry, id: entryRef.id };
+        
+        transaction.set(entryRef, newEntry);
+        transaction.set(eventRef, {
+          provider,
+          eventId,
+          processedAt: Date.now()
+        } as WebhookEvent);
+
+        if (entry.userId && entry.userId !== 'system') {
+          const userRef = adminDb.collection('users').doc(entry.userId);
+          const increment = entry.type === 'CREDIT' ? entry.amount : -entry.amount;
+          transaction.update(userRef, { credit: FieldValue.increment(increment) });
+        }
+
+        return newEntry;
+      });
     }
   }
 };
