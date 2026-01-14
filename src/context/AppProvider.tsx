@@ -4,7 +4,7 @@ import React, { createContext, useState, useMemo, useCallback, useEffect } from 
 import type { Product, CartItem, Order, UserProfileData, UserIntent } from '@/types';
 import { products as productManager } from '@/lib/products';
 import { fetchRecommendations } from '@/actions/getRecommendations';
-import { processPaymentAction } from '@/actions/payments';
+import { processCheckoutAction } from '@/actions/payments';
 import { getProductsFromFirestore, syncInitialProducts } from '@/actions/inventory';
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,6 +31,7 @@ interface AppContextType {
   resetDeck: () => void;
   checkout: (method: 'paypal' | 'ziina') => Promise<void>;
   undoLastSwipe: () => void;
+  claimCredit: (amount: number) => void;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -56,7 +57,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   
   const [userProfile, setUserProfile] = useState<UserProfileData>({
-    name: 'Jane Doe', phone: '+1 234 567 8900', locations: ['123 Fashion Ave, NY'],
+    uid: 'user_123', role: 'user', name: 'Jane Doe', phone: '+1 234 567 8900', locations: ['123 Fashion Ave, NY'],
     paymentCards: [{ last4: '4242', brand: 'Visa' }],
     credit: 10, wishlist: [], orderHistory: []
   });
@@ -70,8 +71,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const calculateProductScore = useCallback((product: Product, affinities: Record<string, number>) => {
     if (product.isCreditCard) return 1000;
     let score = 0;
-    if (product.category) score += (affinities[product.category] || 0) * 2;
-    product.tags?.forEach(tag => { score += (affinities[tag] || 0); });
+    if (product.category) score += (affinities[product.category] || 0) * 5;
+    product.tags?.forEach(tag => { score += (affinities[tag] || 0) * 2; });
     return score;
   }, []);
 
@@ -82,57 +83,79 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return [...swiped, ...reordered];
   }, [currentIndex, calculateProductScore]);
 
-  const loadDeck = useCallback(async (isInitial = false, productsToUse: Product[] = allProducts) => {
-    if (productsToUse.length === 0) return;
+  const loadMoreProducts = useCallback(async (currentAffinities: Record<string, number> = traitAffinities) => {
+    // Inject Surprise Credits every ~10 products
+    const rawProducts = allProducts.length > 0 ? allProducts : productManager.getAllProducts();
+    const freshProducts = rawProducts.filter(p => !seenProductIds.has(p.id));
     
-    const currentSeen = isInitial ? new Set<string>(JSON.parse(localStorage.getItem(STORAGE_KEYS.SEEN) || '[]')) : seenProductIds;
-    let freshProducts = productsToUse.filter(p => !currentSeen.has(p.id));
-    if (freshProducts.length < 5) { freshProducts = productsToUse; setSeenProductIds(new Set()); }
-    
+    if (freshProducts.length < 5) {
+        // Recycle unseen logic for endless swipe
+        setSeenProductIds(new Set());
+    }
+
     const baseProducts = shuffleArray(freshProducts).map((p, idx) => {
-        if (idx > 0 && idx % 12 === 0) {
-            return { id: `credit-${Date.now()}-${idx}`, name: 'Style Credit', price: 0, imageUrl: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800&q=80', isCreditCard: true, creditAmount: Math.floor(Math.random() * 5) + 1 } as Product;
+        if (idx > 0 && idx % 10 === 0) {
+            return {
+                id: `credit-${Date.now()}-${idx}`,
+                name: 'Mystery Style Credit',
+                price: 0,
+                imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&q=80',
+                isCreditCard: true,
+                creditAmount: Math.floor(Math.random() * 5) + 1,
+                description: 'A special gift for your style journey.'
+            } as Product;
         }
         return p;
     });
-    
-    const finalProducts = reorderDeck(baseProducts, traitAffinities);
-    setDeck(isInitial ? finalProducts : prev => [...prev, ...finalProducts]);
-  }, [seenProductIds, traitAffinities, reorderDeck, allProducts]);
+
+    const finalProducts = reorderDeck(baseProducts, currentAffinities);
+    setDeck(prev => [...prev, ...finalProducts]);
+  }, [allProducts, seenProductIds, traitAffinities, reorderDeck]);
 
   useEffect(() => {
     const initialize = async () => {
         setIsLoading(true);
-        // Sync & Fetch from Firestore
-        const initialProds = productManager.getAllProducts();
-        await syncInitialProducts(initialProds);
-        const firestoreProds = await getProductsFromFirestore();
-        const finalProducts = firestoreProds.length > 0 ? firestoreProds : initialProds;
-        setAllProducts(finalProducts);
+        try {
+            const firestoreProds = await getProductsFromFirestore();
+            const finalProducts = firestoreProds.length > 0 ? firestoreProds : productManager.getAllProducts();
+            setAllProducts(finalProducts);
 
-        const savedSeen = localStorage.getItem(STORAGE_KEYS.SEEN);
-        if (savedSeen) setSeenProductIds(new Set(JSON.parse(savedSeen)));
-        
-        const savedIntents = localStorage.getItem(STORAGE_KEYS.INTENTS);
-        if (savedIntents) {
-            const intents: UserIntent[] = JSON.parse(savedIntents);
-            setUserIntents(intents);
-            const newAffinities: Record<string, number> = {};
-            intents.forEach(intent => {
-                const weight = intent.type === 'LIKE' ? 5 : (intent.type === 'DETAIL_VIEW' ? 2 : -3);
-                intent.traits.forEach(trait => { newAffinities[trait] = (newAffinities[trait] || 0) + weight; });
-            });
-            setTraitAffinities(newAffinities);
+            const savedSeen = localStorage.getItem(STORAGE_KEYS.SEEN);
+            const seenSet = savedSeen ? new Set<string>(JSON.parse(savedSeen)) : new Set<string>();
+            setSeenProductIds(seenSet);
+            
+            const savedIntents = localStorage.getItem(STORAGE_KEYS.INTENTS);
+            const initialAffinities: Record<string, number> = {};
+            if (savedIntents) {
+                const intents: UserIntent[] = JSON.parse(savedIntents);
+                setUserIntents(intents);
+                intents.forEach(intent => {
+                    const weight = intent.type === 'LIKE' ? 10 : (intent.type === 'DETAIL_VIEW' ? 3 : -5);
+                    intent.traits.forEach(t => { initialAffinities[t] = (initialAffinities[t] || 0) + weight; });
+                });
+                setTraitAffinities(initialAffinities);
+            }
+            
+            const savedCart = localStorage.getItem(STORAGE_KEYS.CART);
+            if (savedCart) setCart(JSON.parse(savedCart));
+            
+            const savedProfile = localStorage.getItem(STORAGE_KEYS.PROFILE);
+            if (savedProfile) setUserProfile(JSON.parse(savedProfile));
+
+            const savedPersona = localStorage.getItem(STORAGE_KEYS.PERSONA);
+            if (savedPersona) setStylePersona(savedPersona);
+
+            // Initial deck build
+            const freshProducts = finalProducts.filter(p => !seenSet.has(p.id));
+            const baseProducts = shuffleArray(freshProducts);
+            const initialDeck = reorderDeck(baseProducts, initialAffinities);
+            setDeck(initialDeck);
+
+        } catch (e) {
+            console.error("Init failed", e);
+        } finally {
+            setIsLoading(false);
         }
-        
-        const savedCart = localStorage.getItem(STORAGE_KEYS.CART);
-        if (savedCart) setCart(JSON.parse(savedCart));
-        
-        const savedProfile = localStorage.getItem(STORAGE_KEYS.PROFILE);
-        if (savedProfile) setUserProfile(JSON.parse(savedProfile));
-        
-        await loadDeck(true, finalProducts);
-        setIsLoading(false);
     };
     initialize();
   }, []);
@@ -141,58 +164,100 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.INTENTS, JSON.stringify(userIntents)); }, [userIntents]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cart)); }, [cart]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(userProfile)); }, [userProfile]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.PERSONA, stylePersona); }, [stylePersona]);
 
   const handleSwipe = useCallback((productId: string, action: 'swipeLeft' | 'swipeRight') => {
     const product = deck.find(p => p.id === productId);
     if (!product) return;
+
     const traits = [...(product.tags || []), ...(product.category ? [product.category] : [])];
     const newIntent: UserIntent = { type: action === 'swipeRight' ? 'LIKE' : 'DISLIKE', productId, timestamp: Date.now(), traits };
+    
+    // ON-TIME MATH: Update affinities and reorder remaining deck immediately
+    const weight = newIntent.type === 'LIKE' ? 10 : -5;
+    const nextAffinities = { ...traitAffinities };
+    traits.forEach(t => { nextAffinities[t] = (nextAffinities[t] || 0) + weight; });
+    
     setUserIntents(prev => [...prev, newIntent]);
-    const weight = newIntent.type === 'LIKE' ? 5 : -3;
-    const newAffinities = { ...traitAffinities };
-    traits.forEach(t => { newAffinities[t] = (newAffinities[t] || 0) + weight; });
-    setTraitAffinities(newAffinities);
-    setDeck(prev => reorderDeck(prev, newAffinities));
-    setCurrentIndex(prev => prev + 1);
+    setTraitAffinities(nextAffinities);
     setSeenProductIds(prev => new Set(prev).add(productId));
+    setCurrentIndex(prev => prev + 1);
+
     if (product.isCreditCard && action === 'swipeRight') {
-        setUserProfile(prev => ({ ...prev, credit: prev.credit + (product.creditAmount || 0) }));
+        const amount = product.creditAmount || 0;
+        setUserProfile(prev => ({ ...prev, credit: prev.credit + amount }));
+        toast({ title: "Credits Claimed!", description: `$${amount} added to your wallet.` });
     } else if (action === 'swipeRight') {
         setCart(prev => [...prev, { product, quantity: 1 }]);
     }
-  }, [deck, currentIndex, traitAffinities, reorderDeck]);
+
+    // Reorder deck with new math
+    setDeck(prev => reorderDeck(prev, nextAffinities));
+
+    // Load more if needed
+    if (currentIndex > deck.length - 5) {
+        loadMoreProducts(nextAffinities);
+    }
+  }, [deck, currentIndex, traitAffinities, reorderDeck, loadMoreProducts, toast]);
+
+  const undoLastSwipe = useCallback(() => {
+    if (currentIndex === 0) return;
+    const lastAction = userIntents[userIntents.length - 1];
+    if (!lastAction) return;
+
+    const lastProduct = deck[currentIndex - 1];
+    const weight = lastAction.type === 'LIKE' ? 10 : -5;
+    const revertedAffinities = { ...traitAffinities };
+    lastAction.traits.forEach(t => { revertedAffinities[t] = (revertedAffinities[t] || 0) - weight; });
+
+    setTraitAffinities(revertedAffinities);
+    setUserIntents(prev => prev.slice(0, -1));
+    setSeenProductIds(prev => { const next = new Set(prev); next.delete(lastAction.productId); return next; });
+    setCurrentIndex(prev => prev - 1);
+
+    if (lastAction.type === 'LIKE') {
+        if (lastProduct?.isCreditCard) {
+            setUserProfile(prev => ({ ...prev, credit: Math.max(0, prev.credit - (lastProduct.creditAmount || 0)) }));
+        } else {
+            setCart(prev => prev.filter(i => i.product.id !== lastAction.productId));
+        }
+    }
+    setDeck(prev => reorderDeck(prev, revertedAffinities));
+  }, [currentIndex, userIntents, traitAffinities, deck, reorderDeck]);
 
   const checkout = async (method: 'paypal' | 'ziina') => {
     setIsLoading(true);
     try {
-        const total = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
-        const orderId = `ORD-${Date.now()}`;
-        const response = await processPaymentAction(total, method, orderId);
+        const response = await processCheckoutAction(cart, method);
         if (response.success && response.approvalUrl) {
-            const newOrder: Order = { id: orderId, date: new Date().toLocaleDateString(), items: [...cart], total, status: 'processing' };
-            setUserProfile(prev => ({ ...prev, orderHistory: [newOrder, ...prev.orderHistory] }));
-            setCart([]);
-            setCartOpen(false);
             window.location.href = response.approvalUrl;
         } else {
-            toast({ variant: "destructive", title: "Payment Failed", description: response.error });
+            toast({ variant: "destructive", title: "Checkout Failed", description: response.error });
         }
-    } catch (error) {
-        toast({ variant: "destructive", title: "Error", description: "Something went wrong during checkout." });
+    } catch (e) {
+        toast({ variant: "destructive", title: "System Error" });
     } finally {
         setIsLoading(false);
     }
   };
+
+  const removeFromCart = useCallback((productId: string) => {
+    const item = cart.find(i => i.product.id === productId);
+    if (item) {
+        setUserProfile(prev => ({ ...prev, wishlist: [...prev.wishlist, item.product] }));
+        setCart(prev => prev.filter(i => i.product.id !== productId));
+        toast({ title: "Moved to Wishlist" });
+    }
+  }, [cart, toast]);
 
   const value = useMemo(() => ({
     deck, cart, userProfile, userIntents, currentIndex, stylePersona, isDetailsOpen, isCartOpen, isProfileOpen, isLoading,
     handleSwipe, openDetails: () => setDetailsOpen(true), closeDetails: () => setDetailsOpen(false),
     openCart: () => setCartOpen(true), closeCart: () => setCartOpen(false),
     openProfile: () => setProfileOpen(true), closeProfile: () => setProfileOpen(false),
-    removeFromCart: (id: string) => {}, updateQuantity: (id: string, q: number) => {}, 
-    resetDeck: () => { localStorage.clear(); window.location.reload(); },
-    checkout, undoLastSwipe: () => {}
-  }), [deck, cart, userProfile, userIntents, currentIndex, stylePersona, isDetailsOpen, isCartOpen, isProfileOpen, isLoading, handleSwipe]);
+    removeFromCart, updateQuantity: () => {}, resetDeck: () => { localStorage.clear(); window.location.reload(); },
+    checkout, undoLastSwipe, claimCredit: () => {}
+  }), [deck, cart, userProfile, userIntents, currentIndex, stylePersona, isDetailsOpen, isCartOpen, isProfileOpen, isLoading, handleSwipe, undoLastSwipe, checkout, removeFromCart]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

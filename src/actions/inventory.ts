@@ -1,50 +1,48 @@
 'use server';
 
-import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc, getDoc, query, where } from 'firebase/firestore';
+import { db } from '@/server/db';
+import { adminDb } from '@/server/firebase-admin';
+import { assertAdmin } from '@/server/guards';
 import type { Product } from '@/types';
 
-const PRODUCTS_COLLECTION = 'products';
-
-export async function getProductsFromFirestore(): Promise<Product[]> {
-  try {
-    const productsCol = collection(db, PRODUCTS_COLLECTION);
-    const productSnapshot = await getDocs(productsCol);
-    return productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-  } catch (error) {
-    console.error('Error fetching products from Firestore:', error);
-    return [];
-  }
+export async function getProductsAction(): Promise<Product[]> {
+  return db.products.getAll();
 }
 
+export async function getProductsFromFirestore(): Promise<Product[]> {
+  return db.products.getAll();
+}
+
+/**
+ * Real synchronization logic: Populates Firestore if empty.
+ */
 export async function syncInitialProducts(products: Product[]) {
     try {
-        const productsCol = collection(db, PRODUCTS_COLLECTION);
-        const snapshot = await getDocs(productsCol);
-        
+        const snapshot = await adminDb.collection('products').limit(1).get();
         if (snapshot.empty) {
-            console.log('Firestore inventory empty, syncing initial data...');
-            for (const product of products) {
-                await setDoc(doc(db, PRODUCTS_COLLECTION, product.id), product);
-            }
+            console.log('SIMS: Firestore products empty. Initializing seed data...');
+            const batch = adminDb.batch();
+            products.forEach((p) => {
+                const ref = adminDb.collection('products').doc(p.id);
+                batch.set(ref, p);
+            });
+            await batch.commit();
+            console.log('SIMS: Seed data successfully synced.');
         }
     } catch (error) {
-        console.error('Error syncing initial products:', error);
+        console.error('SIMS: Sync failed', error);
     }
 }
 
-export async function addProductToFirestore(product: Omit<Product, 'id'>) {
-    const id = `prod-${Date.now()}`;
-    const newProduct = { ...product, id };
-    await setDoc(doc(db, PRODUCTS_COLLECTION, id), newProduct);
-    return newProduct;
+export async function addProductAction(product: Omit<Product, 'id'>) {
+  await assertAdmin();
+  const id = `prod-${Date.now()}`;
+  const newProduct = { ...product, id };
+  await adminDb.collection('products').doc(id).set(newProduct);
+  return newProduct;
 }
 
-export async function updateProductInFirestore(id: string, updates: Partial<Product>) {
-    const productRef = doc(db, PRODUCTS_COLLECTION, id);
-    await updateDoc(productRef, updates);
-}
-
-export async function deleteProductFromFirestore(id: string) {
-    await deleteDoc(doc(db, PRODUCTS_COLLECTION, id));
+export async function deleteProductAction(id: string) {
+  await assertAdmin();
+  await adminDb.collection('products').doc(id).delete();
 }

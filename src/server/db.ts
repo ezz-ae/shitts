@@ -1,10 +1,7 @@
 import { adminDb } from './firebase-admin';
-import type { Product, Order, UserProfileData, UserIntent } from '@/types';
+import type { Product, Order, UserProfileData, UserIntent, Invoice, LedgerEntry } from '@/types';
+import { FieldValue } from 'firebase-admin/firestore';
 
-/**
- * DB Service: Centralized, server-side only data access.
- * This replaces direct Firestore calls in the UI.
- */
 export const db = {
   products: {
     async getAll(): Promise<Product[]> {
@@ -17,6 +14,10 @@ export const db = {
     }
   },
   users: {
+    async getAllUsers(): Promise<UserProfileData[]> {
+      const snapshot = await adminDb.collection('users').get();
+      return snapshot.docs.map(doc => doc.data() as UserProfileData);
+    },
     async getProfile(userId: string): Promise<UserProfileData | undefined> {
       const doc = await adminDb.collection('users').doc(userId).get();
       return doc.exists ? doc.data() as UserProfileData : undefined;
@@ -24,20 +25,61 @@ export const db = {
     async updateProfile(userId: string, data: Partial<UserProfileData>) {
       await adminDb.collection('users').doc(userId).set(data, { merge: true });
     },
-    async logIntent(userId: string, intent: UserIntent) {
-      await adminDb.collection('users').doc(userId).collection('intents').add(intent);
+    async getAllIntents(): Promise<UserIntent[]> {
+      const snapshot = await adminDb.collectionGroup('intents').get();
+      return snapshot.docs.map(doc => doc.data() as UserIntent);
     }
   },
   orders: {
+    async getAllOrders(): Promise<Order[]> {
+        const snapshot = await adminDb.collection('orders').get();
+        return snapshot.docs.map(doc => doc.data() as Order);
+    },
+    async getOrderById(id: string): Promise<Order | undefined> {
+        const doc = await adminDb.collection('orders').doc(id).get();
+        return doc.exists ? doc.data() as Order : undefined;
+    },
     async create(userId: string, order: Order) {
       const batch = adminDb.batch();
       const orderRef = adminDb.collection('orders').doc(order.id);
       const userOrderRef = adminDb.collection('users').doc(userId).collection('orders').doc(order.id);
-      
       batch.set(orderRef, { ...order, userId });
       batch.set(userOrderRef, order);
-      
       await batch.commit();
+    },
+    async updateOrder(id: string, updates: Partial<Order>) {
+        await adminDb.collection('orders').doc(id).update(updates);
+    },
+    async updateStatus(orderId: string, status: Order['status']) {
+      const orderRef = adminDb.collection('orders').doc(orderId);
+      const orderDoc = await orderRef.get();
+      if (!orderDoc.exists) return;
+      const userId = orderDoc.data()?.userId;
+      const batch = adminDb.batch();
+      batch.update(orderRef, { status });
+      if (userId) {
+        const userOrderRef = adminDb.collection('users').doc(userId).collection('orders').doc(orderId);
+        batch.update(userOrderRef, { status });
+      }
+      await batch.commit();
+    }
+  },
+  invoices: {
+    async create(invoice: Invoice) {
+      await adminDb.collection('invoices').doc(invoice.id).set(invoice);
+    }
+  },
+  ledger: {
+    async addEntry(entry: Omit<LedgerEntry, 'id'>) {
+      const entryRef = adminDb.collection('ledger').doc();
+      const newEntry = { ...entry, id: entryRef.id };
+      await entryRef.set(newEntry);
+      if (entry.userId && entry.userId !== 'system') {
+        const userRef = adminDb.collection('users').doc(entry.userId);
+        const increment = entry.type === 'CREDIT' ? entry.amount : -entry.amount;
+        await userRef.update({ credit: FieldValue.increment(increment) });
+      }
+      return newEntry;
     }
   }
 };
