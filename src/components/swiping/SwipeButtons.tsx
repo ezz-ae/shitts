@@ -11,8 +11,8 @@ interface SwipeButtonsProps {
 
 const UpTriangle = () => (
   <svg
-    width="64"
-    height="64"
+    width="88"
+    height="88"
     viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
@@ -39,7 +39,7 @@ export function SwipeButtons({ onSwipe }: SwipeButtonsProps) {
         className={buttonClass}
         aria-label="Undo Dislike"
       >
-        <X size={64} strokeWidth={2.5} className="text-white" />
+        <X size={88} strokeWidth={2.5} className="text-white" />
       </Button>
       <Button
         onClick={openDetails}
@@ -47,7 +47,7 @@ export function SwipeButtons({ onSwipe }: SwipeButtonsProps) {
         className={buttonClass}
         aria-label="More Info"
       >
-        <Circle size={56} strokeWidth={2.5} className="text-white" />
+        <Circle size={80} strokeWidth={2.5} className="text-white" />
       </Button>
       <Button
         onClick={openCart}
