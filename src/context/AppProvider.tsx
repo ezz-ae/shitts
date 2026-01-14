@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, useEffect } from 'react';
@@ -71,13 +72,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
           return [...prevCart, { product, quantity: 1 }];
         });
-        toast({
-          title: "Added to cart!",
-          description: product.name,
-        });
       }
     }
-  }, [toast]);
+  }, []);
   
   const openCart = () => setCartOpen(true);
   const closeCart = () => setCartOpen(false);
