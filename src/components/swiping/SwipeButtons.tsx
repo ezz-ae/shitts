@@ -3,60 +3,53 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useApp } from '@/hooks/useApp';
-import { X, Circle } from 'lucide-react';
+import { RotateCcw, Info, ShoppingBag } from 'lucide-react';
 
-interface SwipeButtonsProps {
-  onSwipe: (direction: 'left' | 'right') => void;
-}
+export function SwipeButtons() {
+  const { openDetails, undoLastSwipe, openCart, cart } = useApp();
+  const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-const UpTriangle = () => (
-  <svg
-    width="88"
-    height="88"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    stroke="white"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M12 5l-7 14h14z" />
-  </svg>
-);
-
-
-export function SwipeButtons({ onSwipe }: SwipeButtonsProps) {
-  const { openDetails, openCart, undoLastSwipe } = useApp();
-
-  const buttonClass = "transform hover:scale-110 transition-transform duration-200 ease-in-out";
+  // Ghost buttons that work perfectly on top of any image
+  const buttonBaseClass = "text-white transition-all duration-300 active:scale-90 rounded-full";
 
   return (
-    <div className="flex items-center justify-evenly w-full max-w-sm py-6 px-4 z-10">
+    <div className="flex items-center justify-center gap-16 w-full z-30">
       <Button
         onClick={undoLastSwipe}
         variant="ghost"
-        className={buttonClass}
-        aria-label="Undo Dislike"
+        size="icon"
+        className={`${buttonBaseClass} w-10 h-10 opacity-50 hover:opacity-100 bg-white/5 backdrop-blur-md`}
+        aria-label="Undo"
       >
-        <X size={88} strokeWidth={2.5} className="text-white" />
+        <RotateCcw className="w-5 h-5" />
       </Button>
+
       <Button
         onClick={openDetails}
         variant="ghost"
-        className={buttonClass}
+        size="icon"
+        className={`${buttonBaseClass} w-16 h-16 bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl`}
         aria-label="More Info"
       >
-        <Circle size={80} strokeWidth={2.5} className="text-white" />
+        <Info className="w-8 h-8" />
       </Button>
-      <Button
-        onClick={openCart}
-        variant="ghost"
-        className={buttonClass}
-        aria-label="Open Cart"
-      >
-        <UpTriangle />
-      </Button>
+
+      <div className="relative">
+        <Button
+          onClick={openCart}
+          variant="ghost"
+          size="icon"
+          className={`${buttonBaseClass} w-10 h-10 opacity-50 hover:opacity-100 bg-white/5 backdrop-blur-md`}
+          aria-label="Open Cart"
+        >
+          <ShoppingBag className="w-5 h-5" />
+        </Button>
+        {cartCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white animate-in zoom-in">
+            {cartCount}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

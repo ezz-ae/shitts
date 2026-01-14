@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import type { Product } from '@/types';
 import { cn } from '@/lib/utils';
@@ -9,71 +9,83 @@ interface ProductCardProps {
   product: Product;
   isTop: boolean;
   onSwipe: (direction: 'left' | 'right') => void;
-  swipeTrigger: { direction: 'left' | 'right', key: number } | null;
+  dragX: number;
+  onDrag?: (x: number) => void;
+  topDragX: number; // Current drag distance of the card on top
 }
 
-export function ProductCard({ product, isTop, onSwipe, swipeTrigger }: ProductCardProps) {
+export function ProductCard({ product, isTop, onSwipe, dragX, onDrag, topDragX }: ProductCardProps) {
   const [style, setStyle] = useState({ transform: '', opacity: 1 });
-  const [overlayStyle, setOverlayStyle] = useState({ opacity: 0, color: '' });
+  const [overlayStyle, setOverlayStyle] = useState({ opacity: 0 });
   const [overlayText, setOverlayText] = useState('');
-  const [gradientStyle, setGradientStyle] = useState({ background: 'linear-gradient(to top, #0a0a0a, transparent 50%)' });
   
   const cardRef = useRef<HTMLDivElement>(null);
   const startPoint = useRef({ x: 0, y: 0 });
   const isDragging = useRef(false);
 
   const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
-  const SWIPE_THRESHOLD = screenWidth / 4;
+  const SWIPE_THRESHOLD = 110;
+
+  // Smart Background Motion Logic:
+  // Progress goes from 0 to 1 as the top card is swiped away
+  const progress = useMemo(() => {
+    if (isTop) return 0;
+    return Math.min(Math.abs(topDragX) / (screenWidth * 0.7), 1);
+  }, [isTop, topDragX, screenWidth]);
+
+  const bottomCardEffect = useMemo(() => {
+    if (isTop) return {};
+    
+    // Bottom card starts slightly zoomed in and blurred
+    const scale = 1.1 - (progress * 0.1); // 1.1 down to 1.0
+    const blur = 20 - (progress * 20); // 20px down to 0px
+    const opacity = 0.4 + (progress * 0.6); // 0.4 up to 1.0
+    
+    return {
+        transform: `scale(${scale})`,
+        filter: `blur(${blur}px)`,
+        opacity
+    };
+  }, [isTop, progress]);
+
+  // Info (Text) should only be fully visible when it's the top card
+  // For the bottom card, we fade it in as the top card leaves
+  const infoOpacity = isTop ? 1 : progress;
 
   const animateAndSwipe = (direction: 'left' | 'right') => {
-    const endX = direction === 'right' ? screenWidth : -screenWidth;
-    const rotation = (endX / screenWidth) * 20;
-    
+    const endX = direction === 'right' ? screenWidth * 1.5 : -screenWidth * 1.5;
     setStyle({
-      transform: `translateX(${endX}px) rotate(${rotation}deg)`,
+      transform: `translateX(${endX}px) rotate(${direction === 'right' ? 20 : -20}deg)`,
       opacity: 0,
     });
-    
-    setTimeout(() => {
-      onSwipe(direction);
-    }, 300);
+    setTimeout(() => onSwipe(direction), 200);
   };
-  
-  useEffect(() => {
-    if (swipeTrigger && isTop) {
-      animateAndSwipe(swipeTrigger.direction);
-    }
-  }, [swipeTrigger, isTop]);
-
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isTop) return;
     isDragging.current = true;
     startPoint.current = { x: e.clientX, y: e.clientY };
     cardRef.current?.setPointerCapture(e.pointerId);
-    cardRef.current?.style.setProperty('transition', 'none');
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging.current || !isTop) return;
-
     const deltaX = e.clientX - startPoint.current.x;
     const deltaY = e.clientY - startPoint.current.y;
-    const rotation = (deltaX / screenWidth) * 20;
-
-    setStyle({ transform: `translate(${deltaX}px, ${deltaY}px) rotate(${rotation}deg)`, opacity: 1 });
     
-    const opacity = Math.min(Math.abs(deltaX) / SWIPE_THRESHOLD, 1);
-    const gradientIntensity = Math.min(Math.abs(deltaX) / (SWIPE_THRESHOLD * 2), 0.7);
+    if (onDrag) onDrag(deltaX);
 
-    if (deltaX > 0) {
-      setOverlayStyle({ opacity, color: 'rgba(0, 255, 150, 0.7)' }); // Green for like
-      setOverlayText('LIKE');
-      setGradientStyle({ background: `radial-gradient(circle at 100% 50%, rgba(0, 255, 150, ${gradientIntensity}), #0a0a0a, transparent 70%)`});
+    const rotation = (deltaX / screenWidth) * 12;
+    setStyle({ 
+        transform: `translate(${deltaX}px, ${deltaY * 0.05}px) rotate(${rotation}deg)`, 
+        opacity: 1 
+    });
+    
+    if (Math.abs(deltaX) > 25) {
+      setOverlayStyle({ opacity: Math.min(Math.abs(deltaX) / 150, 0.6) });
+      setOverlayText(deltaX > 0 ? 'LIKE' : 'NOPE');
     } else {
-      setOverlayStyle({ opacity, color: 'rgba(255, 80, 80, 0.7)' }); // Red for nope
-      setOverlayText('NOPE');
-      setGradientStyle({ background: `radial-gradient(circle at 0% 50%, rgba(255, 80, 80, ${gradientIntensity}), #0a0a0a, transparent 70%)`});
+      setOverlayStyle({ opacity: 0 });
     }
   };
 
@@ -81,17 +93,15 @@ export function ProductCard({ product, isTop, onSwipe, swipeTrigger }: ProductCa
     if (!isDragging.current || !isTop) return;
     isDragging.current = false;
     cardRef.current?.releasePointerCapture(e.pointerId);
-    cardRef.current?.style.removeProperty('transition');
 
     const deltaX = e.clientX - startPoint.current.x;
-
     if (Math.abs(deltaX) > SWIPE_THRESHOLD) {
       animateAndSwipe(deltaX > 0 ? 'right' : 'left');
     } else {
       setStyle({ transform: 'translate(0px, 0px) rotate(0deg)', opacity: 1 });
-      setGradientStyle({ background: 'linear-gradient(to top, #0a0a0a, transparent 50%)' });
+      setOverlayStyle({ opacity: 0 });
+      if (onDrag) onDrag(0);
     }
-    setOverlayStyle({ opacity: 0, color: '' });
   };
   
   return (
@@ -102,42 +112,55 @@ export function ProductCard({ product, isTop, onSwipe, swipeTrigger }: ProductCa
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
       className={cn(
-        "absolute w-full h-full rounded-2xl overflow-hidden bg-card shadow-2xl transition-all duration-300 ease-in-out border-2 border-neutral-800",
-        isTop ? "cursor-grab active:cursor-grabbing" : "touch-none"
+        "absolute inset-0 overflow-hidden bg-black select-none",
+        isTop ? "z-20 shadow-2xl" : "z-10"
       )}
       style={
-        {
-          ...style,
-          transformOrigin: 'center',
-          willChange: 'transform, opacity',
-        }
+        isTop 
+        ? { ...style, transition: isDragging.current ? 'none' : 'all 0.5s cubic-bezier(0.19, 1, 0.22, 1)' }
+        : { ...(bottomCardEffect as any), transition: 'all 0.1s linear' }
       }
     >
       <Image
         src={product.imageUrl}
         alt={product.name}
         fill
-        sizes="(max-width: 768px) 100vw, 33vw"
+        sizes="100vw"
         priority={isTop}
         className="object-cover pointer-events-none"
-        data-ai-hint={product.imageHint}
       />
-      <div 
-        className="absolute inset-0 transition-all duration-200 pointer-events-none" 
-        style={gradientStyle}
-      />
-      <div className="absolute bottom-0 left-0 right-0 p-5 text-white pointer-events-none">
-        <h2 className="text-3xl font-bold leading-tight drop-shadow-lg">{product.name}</h2>
-        <p className="text-xl font-medium drop-shadow-md">${product.price.toFixed(2)}</p>
-      </div>
+      
+      {/* Swipe Feedback Overlay - Only on top card */}
+      {isTop && (
+        <div 
+          className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 transition-opacity"
+          style={{ 
+            backgroundColor: overlayText === 'LIKE' ? 'rgba(255,105,180,0.1)' : 'rgba(0,0,0,0.1)',
+            opacity: overlayStyle.opacity 
+          }}
+        >
+          <span className={cn(
+            "text-3xl font-black px-5 py-2 border-2 rounded-xl tracking-[0.3em] backdrop-blur-sm",
+            overlayText === 'LIKE' ? "text-pink-500 border-pink-500" : "text-white border-white"
+          )}>
+            {overlayText}
+          </span>
+        </div>
+      )}
 
-      <div
-        className="absolute inset-0 flex items-center justify-center transition-opacity pointer-events-none"
-        style={{ ...overlayStyle }}
+      {/* Cinematic Shadow Gradient */}
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none z-10" />
+      
+      {/* Product Info - Animated to avoid overlap noise */}
+      <div 
+        className="absolute bottom-0 left-0 right-0 p-12 text-white z-20 pointer-events-none transition-opacity duration-300"
+        style={{ opacity: infoOpacity }}
       >
-        <p className="text-6xl font-extrabold text-white tracking-widest px-6 py-3 border-8 border-white rounded-2xl bg-black/20"
-           style={{ transform: overlayText === 'NOPE' ? 'rotate(-15deg)' : 'rotate(15deg)', textShadow: '3px 3px 10px rgba(0,0,0,0.5)' }}>
-          {overlayText}
+        <h2 className="text-4xl font-black tracking-tighter leading-none mb-1 drop-shadow-lg">
+          {product.name}
+        </h2>
+        <p className="text-lg font-bold opacity-80 drop-shadow-md">
+          ${product.price.toFixed(2)}
         </p>
       </div>
     </div>
