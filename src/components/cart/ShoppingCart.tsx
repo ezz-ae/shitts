@@ -4,12 +4,14 @@ import { useApp } from '@/hooks/useApp';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { CartItemCard } from './CartItemCard';
-import { ShoppingBag, ArrowRight, Trash2 } from 'lucide-react';
+import { ShoppingBag, ArrowRight, Trash2, CreditCard } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { useState } from 'react';
 
 export function ShoppingCart() {
-  const { cart, isCartOpen, closeCart, checkout, resetDeck } = useApp();
+  const { cart, isCartOpen, closeCart, checkout, isLoading } = useApp();
+  const [paymentMethod, setPaymentMethod] = useState<'paypal' | 'ziina'>('paypal');
 
   const total = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
 
@@ -24,12 +26,6 @@ export function ShoppingCart() {
                 </div>
                 <SheetTitle className="text-3xl font-black tracking-tighter">Your Bag</SheetTitle>
             </div>
-            {cart.length > 0 && (
-                <Button variant="ghost" size="sm" onClick={() => {}} className="text-muted-foreground hover:text-destructive">
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Clear
-                </Button>
-            )}
           </div>
         </SheetHeader>
 
@@ -39,15 +35,8 @@ export function ShoppingCart() {
               <div className="w-24 h-24 bg-secondary rounded-full flex items-center justify-center opacity-50">
                 <ShoppingBag className="w-12 h-12" />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-2xl font-bold tracking-tight">Your bag is empty</h3>
-                <p className="text-muted-foreground font-medium max-w-[250px]">
-                  Swipe right on items you love to add them to your collection.
-                </p>
-              </div>
-              <Button onClick={closeCart} className="rounded-xl font-bold px-8">
-                Start Swiping
-              </Button>
+              <h3 className="text-2xl font-bold tracking-tight">Your bag is empty</h3>
+              <Button onClick={closeCart} className="rounded-xl font-bold px-8">Start Swiping</Button>
             </div>
           ) : (
             <>
@@ -59,21 +48,29 @@ export function ShoppingCart() {
                 </div>
               </ScrollArea>
               
-              <div className="py-8 space-y-6">
+              <div className="py-6 space-y-4">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Payment Method</h4>
+                <div className="grid grid-cols-2 gap-3">
+                    <Button 
+                        onClick={() => setPaymentMethod('paypal')}
+                        variant="ghost" 
+                        className={cn("h-16 flex-col gap-1 rounded-2xl border-2 transition-all", paymentMethod === 'paypal' ? "border-pink-500 bg-pink-50" : "border-gray-100 bg-gray-50/50")}
+                    >
+                        <span className="font-black text-xs uppercase italic text-blue-800">PayPal</span>
+                    </Button>
+                    <Button 
+                        onClick={() => setPaymentMethod('ziina')}
+                        variant="ghost" 
+                        className={cn("h-16 flex-col gap-1 rounded-2xl border-2 transition-all", paymentMethod === 'ziina' ? "border-pink-500 bg-pink-50" : "border-gray-100 bg-gray-50/50")}
+                    >
+                        <span className="font-black text-xs uppercase text-black">Ziina</span>
+                    </Button>
+                </div>
+
                 <Separator className="bg-foreground/5" />
-                <div className="space-y-2">
-                    <div className="flex justify-between text-muted-foreground font-bold uppercase text-xs tracking-widest">
-                        <span>Subtotal</span>
-                        <span>${total.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-muted-foreground font-bold uppercase text-xs tracking-widest">
-                        <span>Shipping</span>
-                        <span className="text-green-500">FREE</span>
-                    </div>
-                    <div className="flex justify-between items-end pt-2">
-                        <span className="text-xl font-black tracking-tighter">TOTAL</span>
-                        <span className="text-3xl font-black tracking-tighter text-primary">${total.toFixed(2)}</span>
-                    </div>
+                <div className="flex justify-between items-end pt-2">
+                    <span className="text-xl font-black tracking-tighter uppercase">Total</span>
+                    <span className="text-3xl font-black tracking-tighter text-pink-500">${total.toFixed(2)}</span>
                 </div>
               </div>
             </>
@@ -83,11 +80,12 @@ export function ShoppingCart() {
         {cart.length > 0 && (
           <SheetFooter className="p-8 pt-0">
             <Button 
-                onClick={checkout} 
-                className="w-full h-16 rounded-2xl text-xl font-black shadow-xl shadow-primary/30 hover:scale-[1.01] active:scale-[0.99] transition-all group"
+                onClick={() => checkout(paymentMethod)} 
+                disabled={isLoading}
+                className="w-full h-16 rounded-2xl text-xl font-black shadow-xl shadow-pink-200 transition-all group bg-black text-white hover:bg-black/90"
             >
-              CHECKOUT
-              <ArrowRight className="ml-2 w-6 h-6 group-hover:translate-x-1 transition-transform" />
+              {isLoading ? "Processing..." : "PAY & SECURE"}
+              {!isLoading && <ArrowRight className="ml-2 w-6 h-6 group-hover:translate-x-1 transition-transform" />}
             </Button>
           </SheetFooter>
         )}
@@ -95,3 +93,5 @@ export function ShoppingCart() {
     </Sheet>
   );
 }
+
+import { cn } from '@/lib/utils';

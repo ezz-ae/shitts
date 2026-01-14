@@ -4,6 +4,7 @@ import React, { useState, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import type { Product } from '@/types';
 import { cn } from '@/lib/utils';
+import { Sparkles, DollarSign } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -11,7 +12,7 @@ interface ProductCardProps {
   onSwipe: (direction: 'left' | 'right') => void;
   dragX: number;
   onDrag?: (x: number) => void;
-  topDragX: number; // Current drag distance of the card on top
+  topDragX: number;
 }
 
 export function ProductCard({ product, isTop, onSwipe, dragX, onDrag, topDragX }: ProductCardProps) {
@@ -24,40 +25,26 @@ export function ProductCard({ product, isTop, onSwipe, dragX, onDrag, topDragX }
   const isDragging = useRef(false);
 
   const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
-  const SWIPE_THRESHOLD = 110;
+  const SWIPE_THRESHOLD = screenWidth * 0.4; 
 
-  // Smart Background Motion Logic:
-  // Progress goes from 0 to 1 as the top card is swiped away
   const progress = useMemo(() => {
     if (isTop) return 0;
-    return Math.min(Math.abs(topDragX) / (screenWidth * 0.7), 1);
+    return Math.min(Math.max(0, Math.abs(topDragX) - 20) / (screenWidth * 0.6), 1);
   }, [isTop, topDragX, screenWidth]);
 
   const bottomCardEffect = useMemo(() => {
     if (isTop) return {};
-    
-    // Bottom card starts slightly zoomed in and blurred
-    const scale = 1.1 - (progress * 0.1); // 1.1 down to 1.0
-    const blur = 20 - (progress * 20); // 20px down to 0px
-    const opacity = 0.4 + (progress * 0.6); // 0.4 up to 1.0
-    
-    return {
-        transform: `scale(${scale})`,
-        filter: `blur(${blur}px)`,
-        opacity
-    };
+    const scale = 1.08 - (progress * 0.08); 
+    const opacity = progress;
+    const blur = 30 - (progress * 30); 
+    return { transform: `scale(${scale})`, filter: `blur(${blur}px)`, opacity, visibility: opacity > 0 ? 'visible' : 'hidden' };
   }, [isTop, progress]);
 
-  // Info (Text) should only be fully visible when it's the top card
-  // For the bottom card, we fade it in as the top card leaves
   const infoOpacity = isTop ? 1 : progress;
 
   const animateAndSwipe = (direction: 'left' | 'right') => {
     const endX = direction === 'right' ? screenWidth * 1.5 : -screenWidth * 1.5;
-    setStyle({
-      transform: `translateX(${endX}px) rotate(${direction === 'right' ? 20 : -20}deg)`,
-      opacity: 0,
-    });
+    setStyle({ transform: `translateX(${endX}px) rotate(${direction === 'right' ? 15 : -15}deg)`, opacity: 0 });
     setTimeout(() => onSwipe(direction), 200);
   };
 
@@ -71,19 +58,13 @@ export function ProductCard({ product, isTop, onSwipe, dragX, onDrag, topDragX }
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging.current || !isTop) return;
     const deltaX = e.clientX - startPoint.current.x;
-    const deltaY = e.clientY - startPoint.current.y;
-    
     if (onDrag) onDrag(deltaX);
-
     const rotation = (deltaX / screenWidth) * 12;
-    setStyle({ 
-        transform: `translate(${deltaX}px, ${deltaY * 0.05}px) rotate(${rotation}deg)`, 
-        opacity: 1 
-    });
+    setStyle({ transform: `translateX(${deltaX}px) rotate(${rotation}deg)`, opacity: 1 });
     
-    if (Math.abs(deltaX) > 25) {
-      setOverlayStyle({ opacity: Math.min(Math.abs(deltaX) / 150, 0.6) });
-      setOverlayText(deltaX > 0 ? 'LIKE' : 'NOPE');
+    if (Math.abs(deltaX) > 30) {
+      setOverlayStyle({ opacity: Math.min(Math.abs(deltaX) / (screenWidth * 0.4), 0.8) });
+      setOverlayText(deltaX > 0 ? (product.isCreditCard ? 'CLAIM' : 'LIKE') : 'NOPE');
     } else {
       setOverlayStyle({ opacity: 0 });
     }
@@ -98,7 +79,7 @@ export function ProductCard({ product, isTop, onSwipe, dragX, onDrag, topDragX }
     if (Math.abs(deltaX) > SWIPE_THRESHOLD) {
       animateAndSwipe(deltaX > 0 ? 'right' : 'left');
     } else {
-      setStyle({ transform: 'translate(0px, 0px) rotate(0deg)', opacity: 1 });
+      setStyle({ transform: 'translateX(0px) rotate(0deg)', opacity: 1 });
       setOverlayStyle({ opacity: 0 });
       if (onDrag) onDrag(0);
     }
@@ -112,8 +93,8 @@ export function ProductCard({ product, isTop, onSwipe, dragX, onDrag, topDragX }
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
       className={cn(
-        "absolute inset-0 overflow-hidden bg-black select-none",
-        isTop ? "z-20 shadow-2xl" : "z-10"
+        "absolute inset-0 overflow-hidden bg-black touch-none",
+        isTop ? "z-20" : "z-10"
       )}
       style={
         isTop 
@@ -127,40 +108,50 @@ export function ProductCard({ product, isTop, onSwipe, dragX, onDrag, topDragX }
         fill
         sizes="100vw"
         priority={isTop}
-        className="object-cover pointer-events-none"
+        className="object-cover pointer-events-none select-none"
       />
       
-      {/* Swipe Feedback Overlay - Only on top card */}
       {isTop && (
         <div 
           className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 transition-opacity"
           style={{ 
-            backgroundColor: overlayText === 'LIKE' ? 'rgba(255,105,180,0.1)' : 'rgba(0,0,0,0.1)',
+            backgroundColor: overlayText === 'LIKE' || overlayText === 'CLAIM' ? 'rgba(255,105,180,0.1)' : 'rgba(0,0,0,0.1)',
             opacity: overlayStyle.opacity 
           }}
         >
           <span className={cn(
-            "text-3xl font-black px-5 py-2 border-2 rounded-xl tracking-[0.3em] backdrop-blur-sm",
-            overlayText === 'LIKE' ? "text-pink-500 border-pink-500" : "text-white border-white"
+            "text-3xl font-black px-6 py-2 border-2 rounded-xl tracking-[0.4em] backdrop-blur-md",
+            overlayText === 'LIKE' || overlayText === 'CLAIM' ? "text-pink-500 border-pink-500" : "text-white border-white"
           )}>
             {overlayText}
           </span>
         </div>
       )}
 
-      {/* Cinematic Shadow Gradient */}
+      {/* Special Content for Credit Card */}
+      {product.isCreditCard && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-12 bg-black/40 backdrop-blur-sm">
+             <div className="w-32 h-32 bg-pink-500 rounded-full flex items-center justify-center shadow-2xl shadow-pink-500/50 mb-6 animate-bounce">
+                <DollarSign className="w-16 h-16 text-white" />
+             </div>
+             <div className="text-center space-y-2">
+                 <h3 className="text-3xl font-black text-white tracking-tight leading-none uppercase">Bonus Style Credit</h3>
+                 <p className="text-pink-200 font-bold uppercase tracking-widest text-xs">Unlock ${product.creditAmount} Instantly</p>
+             </div>
+          </div>
+      )}
+
       <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none z-10" />
       
-      {/* Product Info - Animated to avoid overlap noise */}
       <div 
-        className="absolute bottom-0 left-0 right-0 p-12 text-white z-20 pointer-events-none transition-opacity duration-300"
+        className="absolute bottom-0 left-0 right-0 p-12 pb-32 text-white z-20 pointer-events-none"
         style={{ opacity: infoOpacity }}
       >
-        <h2 className="text-4xl font-black tracking-tighter leading-none mb-1 drop-shadow-lg">
+        <h2 className="text-4xl font-black tracking-tighter leading-none mb-2 drop-shadow-2xl uppercase">
           {product.name}
         </h2>
-        <p className="text-lg font-bold opacity-80 drop-shadow-md">
-          ${product.price.toFixed(2)}
+        <p className="text-xl font-bold opacity-70 drop-shadow-xl">
+          {product.isCreditCard ? `WORTH $${product.creditAmount}` : `$${product.price.toFixed(2)}`}
         </p>
       </div>
     </div>

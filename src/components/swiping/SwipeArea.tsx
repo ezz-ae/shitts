@@ -8,12 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Sparkles, User } from 'lucide-react';
 
 export function SwipeArea() {
-  const { deck, currentIndex, handleSwipe, isLoading, getNewRecommendations, resetDeck } = useApp();
+  const { deck, currentIndex, handleSwipe, isLoading, resetDeck, openProfile } = useApp();
   const [dragX, setDragX] = useState(0);
 
   const activeCards = deck.slice(currentIndex, currentIndex + 2);
-  // Bottom card is at index 1 (if exists), Top card is at index 0.
-  // We reverse them to render bottom first.
   const cardsToRender = [...activeCards].reverse();
 
   const onSwipe = useCallback((direction: 'left' | 'right') => {
@@ -28,14 +26,14 @@ export function SwipeArea() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center text-center gap-6 p-8 h-full bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-pink-500 opacity-30" />
+      <div className="flex flex-col items-center justify-center text-center gap-6 p-8 h-full bg-black">
+        <Loader2 className="h-6 w-6 animate-spin text-pink-500 opacity-40" />
       </div>
     );
   }
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-black">
+    <div className="relative w-full h-full overflow-hidden bg-black touch-none">
       {/* Product Deck Area */}
       <div className="absolute inset-0">
         {activeCards.length > 0 ? (
@@ -49,7 +47,6 @@ export function SwipeArea() {
                 onSwipe={onSwipe}
                 dragX={isTop ? dragX : 0}
                 onDrag={isTop ? handleDrag : undefined}
-                // Pass the drag progress of the TOP card to the BOTTOM card
                 topDragX={isTop ? 0 : dragX}
               />
             );
@@ -58,27 +55,30 @@ export function SwipeArea() {
           <div className="flex h-full flex-col items-center justify-center text-center p-12 bg-white space-y-8">
             <Sparkles className="w-12 h-12 text-pink-200" />
             <div className="space-y-3">
-              <h2 className="text-3xl font-black tracking-tighter">THE END</h2>
-              <p className="text-gray-400 font-medium">Want to see more?</p>
+              <h2 className="text-3xl font-black tracking-tighter text-black uppercase">Your Daily Edit is Complete</h2>
+              <p className="text-gray-400 font-medium">See you tomorrow with a new selection.</p>
             </div>
-            <Button onClick={getNewRecommendations} className="w-full h-14 bg-pink-500 rounded-2xl font-bold text-lg">Refresh</Button>
-            <Button onClick={resetDeck} variant="ghost" className="w-full text-pink-300 font-bold">Restart</Button>
+            <Button onClick={resetDeck} variant="outline" className="w-full h-14 border-pink-200 text-pink-500 rounded-2xl font-bold text-lg">Restart Today's Session</Button>
           </div>
         )}
       </div>
       
-      {/* Overlay UI */}
-      <div className="absolute top-0 left-0 right-0 p-8 flex justify-between items-center z-50 pointer-events-none">
-        <span className="text-2xl font-black tracking-tighter text-white drop-shadow-md pointer-events-auto">
+      <div className="absolute top-0 left-0 right-0 pt-10 pb-4 px-8 flex justify-between items-center z-50 pointer-events-none">
+        <span className="text-2xl font-black tracking-tighter text-white drop-shadow-2xl pointer-events-auto select-none">
           SHITTS
         </span>
-        <Button variant="ghost" size="icon" className="w-10 h-10 rounded-full bg-black/10 backdrop-blur-md text-white border border-white/20 pointer-events-auto">
-           <User className="w-5 h-5" />
+        <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={openProfile}
+            className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-xl text-white border border-white/20 pointer-events-auto active:scale-90 transition-transform shadow-2xl"
+        >
+           <User className="w-6 h-6" />
         </Button>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 pb-12 pt-20 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-50 pointer-events-none">
-          <div className="pointer-events-auto flex justify-center">
+      <div className="absolute bottom-0 left-0 right-0 pb-16 pt-24 bg-gradient-to-t from-black/90 via-black/30 to-transparent z-50 pointer-events-none">
+          <div className="pointer-events-auto flex justify-center items-center">
             <SwipeButtons />
           </div>
       </div>
