@@ -36,7 +36,10 @@ const CartPage = () => {
                   <span>Total</span>
                   <span>${total.toFixed(2)}</span>
                 </div>
-                <Button size="lg" className="w-full text-lg bg-pink-500 hover:bg-pink-600 text-white" onClick={checkout}>Proceed to Checkout</Button>
+                <div className="grid grid-cols-2 gap-4">
+                  <Button size="lg" className="w-full text-lg bg-blue-600 hover:bg-blue-700 text-white" onClick={() => checkout('paypal')}>Checkout with PayPal</Button>
+                  <Button size="lg" className="w-full text-lg bg-green-600 hover:bg-green-700 text-white" onClick={() => checkout('ziina')}>Checkout with Ziina</Button>
+                </div>
               </div>
             </>
           ) : (

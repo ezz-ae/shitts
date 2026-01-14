@@ -3,7 +3,7 @@
 import { createPayPalOrder, createZiinaPayment } from '@/lib/payments';
 import { requireSession } from '@/server/auth';
 import { db } from '@/server/db';
-import type { CartItem, Invoice } from '@/types';
+import type { CartItem, Invoice, Order } from '@/types';
 
 export async function processCheckoutAction(cart: CartItem[], method: 'paypal' | 'ziina') {
   try {
@@ -28,13 +28,15 @@ export async function processCheckoutAction(cart: CartItem[], method: 'paypal' |
     }
 
     // 1. Create the Order
-    await db.orders.create(session.uid, {
+    const newOrder: Order = {
         id: orderId,
+        userId: session.uid,
         date: new Date().toLocaleDateString(),
         items: cart,
         total,
         status: 'processing'
-    });
+    };
+    await db.orders.create(session.uid, newOrder);
 
     // 2. Create the Invoice (PHASE 3 Backbone)
     const invoice: Invoice = {
@@ -43,10 +45,11 @@ export async function processCheckoutAction(cart: CartItem[], method: 'paypal' |
       userId: session.uid,
       amount: total,
       currency: method === 'paypal' ? 'USD' : 'AED',
-      status: 'unpaid',
+      status: 'pending',
       provider: method,
       providerRef,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      ledgerEntries: []
     };
     await db.invoices.create(invoice);
 

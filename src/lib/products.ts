@@ -51,7 +51,57 @@ let _products: Product[] = [
     category: 'Active',
     tags: ['transparent', 'active', 'minimalist', 'studio'],
     attributes: { 'Material': 'Performance Mesh', 'Fit': 'Athletic' }
-  }
+  },
+  {
+    id: 'prod_urban_1',
+    name: 'Urban Explorer Jacket',
+    description: 'A versatile jacket for the modern commuter. Water-resistant and packed with features.',
+    price: 120.00,
+    imageUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-1603398986-376a2.firebasestorage.app/o/turtleneck-pullover-mockup-of-a-man-posing-by-a-concrete-wall-23223.PNG?alt=media&token=7d31b3e9-5147-493e-9080-5a337a6b2297',
+    category: 'Outerwear',
+    tags: ['jacket', 'urban', 'techwear', 'black'],
+    attributes: { 'Material': 'Nylon', 'Fit': 'Regular' }
+    },
+    {
+    id: 'prod_casual_1',
+    name: 'Everyday Crewneck',
+    description: 'A soft, comfortable crewneck for daily wear. Your new favorite sweater.',
+    price: 55.00,
+    imageUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-1603398986-376a2.firebasestorage.app/o/crewneck-sweatshirt-mockup-of-a-man-at-a-studio-23170.PNG?alt=media&token=26d1a99b-d790-449b-98f5-7c093e8e7c10',
+    category: 'Tops',
+    tags: ['crewneck', 'sweater', 'casual', 'heather'],
+    attributes: { 'Material': 'Cotton/Poly Blend', 'Fit': 'Relaxed' }
+    },
+    {
+    id: 'prod_street_2',
+    name: 'Graffiti Art Hoodie',
+    description: 'A bold statement hoodie featuring custom artwork. Limited edition.',
+    price: 85.00,
+    imageUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-1603398986-376a2.firebasestorage.app/o/hoodie-mockup-of-a-man-posing-in-a-graffiti-scenery-23218.PNG?alt=media&token=9698d254-8c88-4665-a83a-4ff18408f61c',
+    category: 'Outerwear',
+    tags: ['hoodie', 'streetwear', 'art', 'limited'],
+    attributes: { 'Material': 'Fleece', 'Fit': 'Oversized' }
+    },
+    {
+    id: 'prod_denim_1',
+    name: 'Classic Denim Jacket',
+    description: 'A timeless denim jacket that only gets better with age. A wardrobe essential.',
+    price: 95.00,
+    imageUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-1603398986-376a2.firebasestorage.app/o/denim-jacket-mockup-of-a-man-posing-against-a-customizable-background-23169.PNG?alt=media&token=7c7d2c3b-1e5b-4e5c-9c7a-9e2c696e5d7c',
+    category: 'Outerwear',
+    tags: ['denim', 'jacket', 'classic', 'blue'],
+    attributes: { 'Material': '100% Cotton Denim', 'Fit': 'Regular' }
+    },
+    {
+    id: 'prod_tshirt_1',
+    name: 'Basic Pocket Tee',
+    description: 'A simple, well-made pocket tee. The foundation of any great outfit.',
+    price: 25.00,
+    imageUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-1603398986-376a2.firebasestorage.app/o/t-shirt-mockup-of-a-man-with-a-big-beard-posing-in-a-studio-23168.PNG?alt=media&token=0b6a2e4c-1e2a-4c2d-8e8e-9d2a6a6f6c9d',
+    category: 'Tops',
+    tags: ['tshirt', 'basic', 'pocket', 'black'],
+    attributes: { 'Material': '100% Cotton', 'Fit': 'Regular' }
+    }
 ];
 
 export const products = {

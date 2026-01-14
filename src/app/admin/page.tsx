@@ -26,7 +26,7 @@ export default function MasterDashboard() {
   const refreshData = async () => {
     setLoading(true);
     const res = await getMasterAdminData();
-    if (res.success) {
+    if (res.success && 'data' in res) {
         setData(res.data);
     } else {
         toast({ 
@@ -54,7 +54,7 @@ export default function MasterDashboard() {
       if (!question) return;
       setAsking(true);
       const res = await askInventoryBrain(question);
-      if (res.success) setAnswer(res.data.answer);
+      if (res.success && 'data' in res) setAnswer(res.data.answer);
       setAsking(false);
   };
 

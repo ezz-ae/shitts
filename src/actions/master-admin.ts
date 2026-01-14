@@ -63,7 +63,7 @@ export async function getMasterAdminData() {
         revenue: financial.overview.totalRevenue,
         activeUsers: users.length,
         pendingOrders: pendingOrders.length,
-        conversionRate: conversion.insights.highestVelocity.length > 0 ? 12.5 : 0 // Simulated aggregate
+        conversionRate: conversion.funnel.length > 0 ? 12.5 : 0 // Simulated aggregate
       }
     });
   } catch (error) {
