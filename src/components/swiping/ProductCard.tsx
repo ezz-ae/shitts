@@ -84,6 +84,9 @@ export function ProductCard({ product, isTop, onSwipe, dragX, onDrag, topDragX }
       if (onDrag) onDrag(0);
     }
   };
+
+  // Support for both .mp4 and .mov
+  const isVideoProduct = product.imageUrl.toLowerCase().endsWith('.mp4') || product.imageUrl.toLowerCase().includes('.mov');
   
   return (
     <div
@@ -102,14 +105,26 @@ export function ProductCard({ product, isTop, onSwipe, dragX, onDrag, topDragX }
         : { ...(bottomCardEffect as any), transition: 'all 0.1s linear' }
       }
     >
-      <Image
-        src={product.imageUrl}
-        alt={product.name}
-        fill
-        sizes="100vw"
-        priority={isTop}
-        className="object-cover pointer-events-none select-none"
-      />
+      {isVideoProduct ? (
+          <video 
+            src={product.imageUrl}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          />
+      ) : (
+          <Image
+            src={product.imageUrl}
+            alt={product.name}
+            fill
+            sizes="100vw"
+            priority={isTop}
+            className="object-cover pointer-events-none select-none"
+            unoptimized={product.imageUrl.includes('firebasestorage')} // Ensures storage PNGs render correctly
+          />
+      )}
       
       {isTop && (
         <div 
@@ -128,7 +143,6 @@ export function ProductCard({ product, isTop, onSwipe, dragX, onDrag, topDragX }
         </div>
       )}
 
-      {/* Special Content for Credit Card */}
       {product.isCreditCard && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-12 bg-black/40 backdrop-blur-sm">
              <div className="w-32 h-32 bg-pink-500 rounded-full flex items-center justify-center shadow-2xl shadow-pink-500/50 mb-6 animate-bounce">

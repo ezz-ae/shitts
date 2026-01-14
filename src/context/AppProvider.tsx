@@ -1,7 +1,7 @@
 "use client";
 
-import React, { createContext, useState, useMemo, useCallback, useEffect } from 'react';
-import type { Product, CartItem, Order, UserProfileData, UserIntent } from '@/types';
+import React, { createContext, useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import type { Product, CartItem, Order, UserProfileData, UserIntent, LedgerEntry } from '@/types';
 import { products as productManager } from '@/lib/products';
 import { fetchRecommendations } from '@/actions/getRecommendations';
 import { processCheckoutAction } from '@/actions/payments';
@@ -31,7 +31,6 @@ interface AppContextType {
   resetDeck: () => void;
   checkout: (method: 'paypal' | 'ziina') => Promise<void>;
   undoLastSwipe: () => void;
-  claimCredit: (amount: number) => void;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -56,10 +55,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [traitAffinities, setTraitAffinities] = useState<Record<string, number>>({});
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   
+  const loadingMore = useRef(false);
+
   const [userProfile, setUserProfile] = useState<UserProfileData>({
     uid: 'user_123', role: 'user', name: 'Jane Doe', phone: '+1 234 567 8900', locations: ['123 Fashion Ave, NY'],
     paymentCards: [{ last4: '4242', brand: 'Visa' }],
-    credit: 10, wishlist: [], orderHistory: []
+    credit: 10, picked: [], orderHistory: [], creditHistory: []
   });
 
   const [isDetailsOpen, setDetailsOpen] = useState(false);
@@ -76,41 +77,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return score;
   }, []);
 
-  const reorderDeck = useCallback((currentDeck: Product[], affinities: Record<string, number>) => {
-    const swiped = currentDeck.slice(0, currentIndex + 1);
-    const remaining = currentDeck.slice(currentIndex + 1);
+  const reorderDeck = useCallback((currentDeck: Product[], affinities: Record<string, number>, startIndex: number) => {
+    const swiped = currentDeck.slice(0, startIndex);
+    const remaining = currentDeck.slice(startIndex);
     const reordered = [...remaining].sort((a, b) => calculateProductScore(b, affinities) - calculateProductScore(a, affinities));
     return [...swiped, ...reordered];
-  }, [currentIndex, calculateProductScore]);
+  }, [calculateProductScore]);
 
   const loadMoreProducts = useCallback(async (currentAffinities: Record<string, number> = traitAffinities) => {
-    // Inject Surprise Credits every ~10 products
-    const rawProducts = allProducts.length > 0 ? allProducts : productManager.getAllProducts();
-    const freshProducts = rawProducts.filter(p => !seenProductIds.has(p.id));
-    
-    if (freshProducts.length < 5) {
-        // Recycle unseen logic for endless swipe
-        setSeenProductIds(new Set());
+    if (loadingMore.current) return;
+    loadingMore.current = true;
+
+    try {
+        const rawProducts = allProducts.length > 0 ? allProducts : productManager.getAllProducts();
+        
+        setDeck(prevDeck => {
+            const inDeckIds = new Set(prevDeck.map(p => p.id));
+            const freshProducts = rawProducts.filter(p => !seenProductIds.has(p.id) && !inDeckIds.has(p.id));
+            
+            if (freshProducts.length < 2) {
+                loadingMore.current = false;
+                return prevDeck;
+            }
+
+            const baseProducts = shuffleArray(freshProducts).map((p, idx) => {
+                if (idx > 0 && idx % 10 === 0) {
+                    return {
+                        id: `credit-${Date.now()}-${idx}`,
+                        name: 'Mystery Style Credit',
+                        price: 0,
+                        imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&q=80',
+                        isCreditCard: true,
+                        creditAmount: Math.floor(Math.random() * 5) + 1,
+                        description: 'A special gift for your style journey.'
+                    } as Product;
+                }
+                return p;
+            });
+
+            const finalProducts = [...baseProducts].sort((a, b) => calculateProductScore(b, currentAffinities) - calculateProductScore(a, currentAffinities));
+            const uniqueAppend = finalProducts.filter(p => !inDeckIds.has(p.id));
+            loadingMore.current = false;
+            return [...prevDeck, ...uniqueAppend];
+        });
+    } catch (e) {
+        loadingMore.current = false;
     }
-
-    const baseProducts = shuffleArray(freshProducts).map((p, idx) => {
-        if (idx > 0 && idx % 10 === 0) {
-            return {
-                id: `credit-${Date.now()}-${idx}`,
-                name: 'Mystery Style Credit',
-                price: 0,
-                imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&q=80',
-                isCreditCard: true,
-                creditAmount: Math.floor(Math.random() * 5) + 1,
-                description: 'A special gift for your style journey.'
-            } as Product;
-        }
-        return p;
-    });
-
-    const finalProducts = reorderDeck(baseProducts, currentAffinities);
-    setDeck(prev => [...prev, ...finalProducts]);
-  }, [allProducts, seenProductIds, traitAffinities, reorderDeck]);
+  }, [allProducts, seenProductIds, traitAffinities, calculateProductScore]);
 
   useEffect(() => {
     const initialize = async () => {
@@ -145,11 +158,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const savedPersona = localStorage.getItem(STORAGE_KEYS.PERSONA);
             if (savedPersona) setStylePersona(savedPersona);
 
-            // Initial deck build
             const freshProducts = finalProducts.filter(p => !seenSet.has(p.id));
             const baseProducts = shuffleArray(freshProducts);
-            const initialDeck = reorderDeck(baseProducts, initialAffinities);
-            setDeck(initialDeck);
+            const initialDeck = [...baseProducts].sort((a, b) => calculateProductScore(b, initialAffinities) - calculateProductScore(a, initialAffinities));
+            
+            const uniqueDeck: Product[] = [];
+            const ids = new Set();
+            initialDeck.forEach(p => { if (!ids.has(p.id)) { ids.add(p.id); uniqueDeck.push(p); } });
+            setDeck(uniqueDeck);
 
         } catch (e) {
             console.error("Init failed", e);
@@ -158,7 +174,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
     };
     initialize();
-  }, []);
+  }, [calculateProductScore]);
 
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.SEEN, JSON.stringify(Array.from(seenProductIds))); }, [seenProductIds]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.INTENTS, JSON.stringify(userIntents)); }, [userIntents]);
@@ -173,7 +189,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const traits = [...(product.tags || []), ...(product.category ? [product.category] : [])];
     const newIntent: UserIntent = { type: action === 'swipeRight' ? 'LIKE' : 'DISLIKE', productId, timestamp: Date.now(), traits };
     
-    // ON-TIME MATH: Update affinities and reorder remaining deck immediately
     const weight = newIntent.type === 'LIKE' ? 10 : -5;
     const nextAffinities = { ...traitAffinities };
     traits.forEach(t => { nextAffinities[t] = (nextAffinities[t] || 0) + weight; });
@@ -181,24 +196,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUserIntents(prev => [...prev, newIntent]);
     setTraitAffinities(nextAffinities);
     setSeenProductIds(prev => new Set(prev).add(productId));
-    setCurrentIndex(prev => prev + 1);
 
     if (product.isCreditCard && action === 'swipeRight') {
         const amount = product.creditAmount || 0;
-        setUserProfile(prev => ({ ...prev, credit: prev.credit + amount }));
+        const historyEntry: LedgerEntry = {
+            id: `entry-${Date.now()}`,
+            type: 'CREDIT',
+            amount,
+            userId: userProfile.uid,
+            description: 'Claimed Mystery Credit',
+            metadata: { source: 'swipe' },
+            timestamp: Date.now()
+        };
+        setUserProfile(prev => ({ 
+            ...prev, 
+            credit: prev.credit + amount,
+            creditHistory: [historyEntry, ...(prev.creditHistory || [])]
+        }));
         toast({ title: "Credits Claimed!", description: `$${amount} added to your wallet.` });
     } else if (action === 'swipeRight') {
         setCart(prev => [...prev, { product, quantity: 1 }]);
     }
 
-    // Reorder deck with new math
-    setDeck(prev => reorderDeck(prev, nextAffinities));
+    setDeck(prev => reorderDeck(prev, nextAffinities, currentIndex + 1));
+    setCurrentIndex(prev => prev + 1);
 
-    // Load more if needed
     if (currentIndex > deck.length - 5) {
         loadMoreProducts(nextAffinities);
     }
-  }, [deck, currentIndex, traitAffinities, reorderDeck, loadMoreProducts, toast]);
+  }, [deck, currentIndex, traitAffinities, reorderDeck, loadMoreProducts, toast, userProfile.uid]);
 
   const undoLastSwipe = useCallback(() => {
     if (currentIndex === 0) return;
@@ -217,12 +243,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (lastAction.type === 'LIKE') {
         if (lastProduct?.isCreditCard) {
-            setUserProfile(prev => ({ ...prev, credit: Math.max(0, prev.credit - (lastProduct.creditAmount || 0)) }));
+            setUserProfile(prev => ({ 
+                ...prev, 
+                credit: Math.max(0, prev.credit - (lastProduct.creditAmount || 0)),
+                creditHistory: (prev.creditHistory || []).slice(1) // Remove latest entry
+            }));
         } else {
             setCart(prev => prev.filter(i => i.product.id !== lastAction.productId));
         }
     }
-    setDeck(prev => reorderDeck(prev, revertedAffinities));
+    setDeck(prev => reorderDeck(prev, revertedAffinities, currentIndex - 1));
   }, [currentIndex, userIntents, traitAffinities, deck, reorderDeck]);
 
   const checkout = async (method: 'paypal' | 'ziina') => {
@@ -230,6 +260,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
         const response = await processCheckoutAction(cart, method);
         if (response.success && response.approvalUrl) {
+            // Log the use of credits if any
+            const total = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
+            const creditUsed = Math.min(userProfile.credit, total);
+            if (creditUsed > 0) {
+                const historyEntry: LedgerEntry = {
+                    id: `used-${Date.now()}`,
+                    type: 'DEBIT',
+                    amount: creditUsed,
+                    userId: userProfile.uid,
+                    description: 'Used on checkout',
+                    metadata: { method },
+                    timestamp: Date.now()
+                };
+                setUserProfile(prev => ({
+                    ...prev,
+                    credit: prev.credit - creditUsed,
+                    creditHistory: [historyEntry, ...(prev.creditHistory || [])]
+                }));
+            }
             window.location.href = response.approvalUrl;
         } else {
             toast({ variant: "destructive", title: "Checkout Failed", description: response.error });
@@ -244,9 +293,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const removeFromCart = useCallback((productId: string) => {
     const item = cart.find(i => i.product.id === productId);
     if (item) {
-        setUserProfile(prev => ({ ...prev, wishlist: [...prev.wishlist, item.product] }));
+        setUserProfile(prev => ({ ...prev, picked: [...prev.picked, item.product] }));
         setCart(prev => prev.filter(i => i.product.id !== productId));
-        toast({ title: "Moved to Wishlist" });
+        toast({ title: "Moved to Picked" });
     }
   }, [cart, toast]);
 
@@ -256,7 +305,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     openCart: () => setCartOpen(true), closeCart: () => setCartOpen(false),
     openProfile: () => setProfileOpen(true), closeProfile: () => setProfileOpen(false),
     removeFromCart, updateQuantity: () => {}, resetDeck: () => { localStorage.clear(); window.location.reload(); },
-    checkout, undoLastSwipe, claimCredit: () => {}
+    checkout, undoLastSwipe
   }), [deck, cart, userProfile, userIntents, currentIndex, stylePersona, isDetailsOpen, isCartOpen, isProfileOpen, isLoading, handleSwipe, undoLastSwipe, checkout, removeFromCart]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

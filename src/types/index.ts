@@ -11,6 +11,7 @@ export interface Product {
   imageHint?: string;
   isCreditCard?: boolean;
   creditAmount?: number;
+  attributes?: Record<string, string>;
 }
 
 export interface CartItem {
@@ -62,8 +63,9 @@ export interface UserProfileData {
   locations: string[];
   paymentCards: { last4: string; brand: string }[];
   credit: number;
-  wishlist: Product[];
+  picked: Product[];
   orderHistory: Order[];
+  creditHistory: LedgerEntry[]; // Added for detailed wallet tracking
 }
 
 export type UserIntent = {

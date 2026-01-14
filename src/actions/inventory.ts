@@ -14,21 +14,31 @@ export async function getProductsFromFirestore(): Promise<Product[]> {
 }
 
 /**
- * Real synchronization logic: Populates Firestore if empty.
+ * MASTER SYNC: Forces Firestore to match the provided seed data exactly.
+ * This will delete old products and replace them with the new loading ones.
  */
 export async function syncInitialProducts(products: Product[]) {
     try {
-        const snapshot = await adminDb.collection('products').limit(1).get();
-        if (snapshot.empty) {
-            console.log('SIMS: Firestore products empty. Initializing seed data...');
-            const batch = adminDb.batch();
-            products.forEach((p) => {
-                const ref = adminDb.collection('products').doc(p.id);
-                batch.set(ref, p);
-            });
-            await batch.commit();
-            console.log('SIMS: Seed data successfully synced.');
+        console.log('SIMS: Starting Master Sync with fresh assets...');
+        
+        // 1. Clear existing products to ensure only loading assets exist
+        const currentProducts = await adminDb.collection('products').get();
+        if (!currentProducts.empty) {
+            const deleteBatch = adminDb.batch();
+            currentProducts.docs.forEach(doc => deleteBatch.delete(doc.ref));
+            await deleteBatch.commit();
+            console.log('SIMS: Cleared old inventory.');
         }
+
+        // 2. Upload new products
+        const batch = adminDb.batch();
+        products.forEach((p) => {
+            const ref = adminDb.collection('products').doc(p.id);
+            batch.set(ref, p);
+        });
+        await batch.commit();
+        console.log('SIMS: Fresh inventory successfully synced to Firestore.');
+        
     } catch (error) {
         console.error('SIMS: Sync failed', error);
     }
