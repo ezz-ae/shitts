@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 
 export const Header = () => {
   return (
-    <header className="bg-background border-b border-border py-3 px-4 flex items-center justify-between sticky top-0 z-50">
+    <header className="bg-background/80 backdrop-blur-sm border-b border-white/10 py-3 px-4 flex items-center justify-between sticky top-0 z-50">
       <Link href="/" className="text-xl font-headline font-bold text-foreground">
         StyleSwipe
       </Link>
