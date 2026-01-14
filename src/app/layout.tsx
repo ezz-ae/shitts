@@ -6,7 +6,7 @@ import { ShoppingCart } from '@/components/cart/ShoppingCart';
 import { AppProvider } from '@/context/AppProvider';
 
 export const metadata: Metadata = {
-  title: 'StyleSwipe',
+  title: 'Shitts',
   description: 'Find your next look',
 };
 
