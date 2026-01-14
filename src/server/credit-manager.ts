@@ -12,14 +12,14 @@ export const creditManager = {
    */
   async grantCredit(userId: string, amount: number, reason: string) {
     logger.info('Credit: Granting reward', { userId, amount, reason });
-    return await db.ledger.addEntry({
+    return await db.ledger.addEntryIdempotent({
       type: 'CREDIT',
       amount,
       userId,
       description: `Admin Grant: ${reason}`,
       metadata: { source: 'admin_manual' },
       timestamp: Date.now()
-    });
+    }, 'admin', `grant-${userId}-${Date.now()}`);
   },
 
   /**
@@ -30,14 +30,14 @@ export const creditManager = {
     if (!profile || profile.credit < amount) {
       throw new AppError('Insufficient credit balance to revoke');
     }
-    return await db.ledger.addEntry({
+    return await db.ledger.addEntryIdempotent({
       type: 'DEBIT',
       amount,
       userId,
       description: `Revocation: ${reason}`,
       metadata: { source: 'admin_manual' },
       timestamp: Date.now()
-    });
+    }, 'admin', `revoke-${userId}-${Date.now()}`);
   },
 
   /**
@@ -49,14 +49,14 @@ export const creditManager = {
 
     const amountToApply = Math.min(profile.credit, orderTotal);
     
-    await db.ledger.addEntry({
+    await db.ledger.addEntryIdempotent({
       type: 'DEBIT',
       amount: amountToApply,
       userId,
       description: `Payment for Order ${orderId}`,
       metadata: { orderId },
       timestamp: Date.now()
-    });
+    }, 'order', orderId);
 
     return {
       applied: amountToApply,
