@@ -16,6 +16,7 @@ export function ProductCard({ product, isTop, onSwipe, swipeTrigger }: ProductCa
   const [style, setStyle] = useState({ transform: '', opacity: 1 });
   const [overlayStyle, setOverlayStyle] = useState({ opacity: 0, color: '' });
   const [overlayText, setOverlayText] = useState('');
+  const [gradientStyle, setGradientStyle] = useState({ background: 'linear-gradient(to top, #0a0a0a, transparent 50%)' });
   
   const cardRef = useRef<HTMLDivElement>(null);
   const startPoint = useRef({ x: 0, y: 0 });
@@ -63,12 +64,16 @@ export function ProductCard({ product, isTop, onSwipe, swipeTrigger }: ProductCa
     setStyle({ transform: `translate(${deltaX}px, ${deltaY}px) rotate(${rotation}deg)`, opacity: 1 });
     
     const opacity = Math.min(Math.abs(deltaX) / SWIPE_THRESHOLD, 1);
+    const gradientIntensity = Math.min(Math.abs(deltaX) / (SWIPE_THRESHOLD * 2), 0.7);
+
     if (deltaX > 0) {
-      setOverlayStyle({ opacity, color: 'rgba(59, 130, 246, 0.7)' }); // Blue for like
+      setOverlayStyle({ opacity, color: 'rgba(0, 255, 150, 0.7)' }); // Green for like
       setOverlayText('LIKE');
+      setGradientStyle({ background: `radial-gradient(circle at 100% 50%, rgba(0, 255, 150, ${gradientIntensity}), #0a0a0a, transparent 70%)`});
     } else {
-      setOverlayStyle({ opacity, color: 'rgba(239, 68, 68, 0.7)' }); // Red for nope
+      setOverlayStyle({ opacity, color: 'rgba(255, 80, 80, 0.7)' }); // Red for nope
       setOverlayText('NOPE');
+      setGradientStyle({ background: `radial-gradient(circle at 0% 50%, rgba(255, 80, 80, ${gradientIntensity}), #0a0a0a, transparent 70%)`});
     }
   };
 
@@ -84,6 +89,7 @@ export function ProductCard({ product, isTop, onSwipe, swipeTrigger }: ProductCa
       animateAndSwipe(deltaX > 0 ? 'right' : 'left');
     } else {
       setStyle({ transform: 'translate(0px, 0px) rotate(0deg)', opacity: 1 });
+      setGradientStyle({ background: 'linear-gradient(to top, #0a0a0a, transparent 50%)' });
     }
     setOverlayStyle({ opacity: 0, color: '' });
   };
@@ -96,7 +102,7 @@ export function ProductCard({ product, isTop, onSwipe, swipeTrigger }: ProductCa
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
       className={cn(
-        "absolute w-full h-full rounded-2xl overflow-hidden bg-card shadow-xl transition-transform duration-300 ease-in-out border-2",
+        "absolute w-full h-full rounded-2xl overflow-hidden bg-card shadow-2xl transition-all duration-300 ease-in-out border-2 border-neutral-800",
         isTop ? "cursor-grab active:cursor-grabbing" : "touch-none"
       )}
       style={
@@ -116,18 +122,21 @@ export function ProductCard({ product, isTop, onSwipe, swipeTrigger }: ProductCa
         className="object-cover pointer-events-none"
         data-ai-hint={product.imageHint}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+      <div 
+        className="absolute inset-0 transition-all duration-200 pointer-events-none" 
+        style={gradientStyle}
+      />
       <div className="absolute bottom-0 left-0 right-0 p-5 text-white pointer-events-none">
-        <h2 className="text-2xl font-bold leading-tight drop-shadow-md">{product.name}</h2>
-        <p className="text-lg font-medium drop-shadow-sm">${product.price.toFixed(2)}</p>
+        <h2 className="text-3xl font-bold leading-tight drop-shadow-lg">{product.name}</h2>
+        <p className="text-xl font-medium drop-shadow-md">${product.price.toFixed(2)}</p>
       </div>
 
       <div
         className="absolute inset-0 flex items-center justify-center transition-opacity pointer-events-none"
         style={{ ...overlayStyle }}
       >
-        <p className="text-5xl font-extrabold text-white tracking-widest px-4 py-2 border-4 border-white rounded-xl"
-           style={{ transform: overlayText === 'NOPE' ? 'rotate(-10deg)' : 'rotate(10deg)', textShadow: '2px 2px 8px rgba(0,0,0,0.4)' }}>
+        <p className="text-6xl font-extrabold text-white tracking-widest px-6 py-3 border-8 border-white rounded-2xl bg-black/20"
+           style={{ transform: overlayText === 'NOPE' ? 'rotate(-15deg)' : 'rotate(15deg)', textShadow: '3px 3px 10px rgba(0,0,0,0.5)' }}>
           {overlayText}
         </p>
       </div>

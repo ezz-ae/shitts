@@ -24,7 +24,7 @@ export function SwipeArea() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center text-center gap-4 p-4">
+      <div className="flex flex-col items-center justify-center text-center gap-4 p-4 h-full">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <h2 className="text-2xl font-headline font-bold tracking-tight">Curating your style...</h2>
         <p className="text-muted-foreground font-body">Our AI is picking out fresh looks just for you!</p>
@@ -34,7 +34,7 @@ export function SwipeArea() {
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-full">
-      <div className="relative flex-1 flex items-center justify-center w-full max-w-sm aspect-[3/4] my-4">
+      <div className="relative flex-1 flex items-center justify-center w-full max-w-sm aspect-[3/4.5] my-4">
         {activeCards.length > 0 ? (
           activeCards.map((product, index) => {
             const isTop = index === activeCards.length - 1;
@@ -49,11 +49,11 @@ export function SwipeArea() {
             );
           })
         ) : (
-          <div className="text-center p-8 bg-card rounded-lg shadow-md">
+          <div className="text-center p-8 bg-neutral-900 rounded-lg shadow-2xl border border-neutral-800">
             <h2 className="text-2xl font-headline font-bold tracking-tight">That's all for now!</h2>
             <p className="text-muted-foreground font-body mt-2 mb-6">Want to see more? Get personalized recommendations from our AI stylist.</p>
             <div className="flex flex-col gap-4">
-              <Button onClick={getNewRecommendations} className="bg-accent hover:bg-accent/90" size="lg">
+              <Button onClick={getNewRecommendations} size="lg">
                 Get AI Recommendations
               </Button>
               <Button onClick={resetDeck} variant="outline" size="lg">
